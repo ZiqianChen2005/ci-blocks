@@ -49,45 +49,24 @@ export const enUS: 语言包 = {
     'cib/if-action': {
       keyword: 'Trigger',
       描述: 'Define the workflow trigger event (on:)',
-      字段: {
-        事件: 'Event',
-        分支: 'Branch',
-        作业: 'Jobs',
-      },
+      字段: { 事件: 'Event', 分支: 'Branch', 作业: 'Jobs' },
     },
     'cib/if-branch': {
       keyword: 'Branch Filter',
       描述: 'Restrict which branches / paths / tags trigger',
-      字段: {
-        过滤键: 'Filter Key',
-        过滤值: 'Filter Value',
-      },
-      选项: {
-        branches: 'branches',
-        paths: 'paths',
-        tags: 'tags',
-      },
+      字段: { 过滤键: 'Filter Key', 过滤值: 'Filter Value' },
+      选项: { branches: 'branches', paths: 'paths', tags: 'tags' },
     },
     'cib/if-workflow': {
       keyword: 'Workflow Condition',
       描述: "Branch on the preceding business job's result (gates are excluded)",
-      字段: {
-        通过时执行: 'On Success',
-        失败时执行: 'On Failure',
-      },
+      字段: { 通过时执行: 'On Success', 失败时执行: 'On Failure' },
     },
     'cib/time-gate': {
       keyword: 'Time Gate',
       描述: 'Reject commits outside the valid time window (with timezone support)',
-      字段: {
-        基准时间: 'Base Time',
-        时区: 'Timezone',
-        模式: 'Mode',
-      },
-      选项: {
-        开仓冻结: 'Open Freeze',
-        超时封仓: 'Timeout Close',
-      },
+      字段: { 基准时间: 'Base Time', 时区: 'Timezone', 模式: 'Mode' },
+      选项: { 开仓冻结: 'Open Freeze', 超时封仓: 'Timeout Close' },
     },
     'cib/count-gate': {
       keyword: 'Count Gate',
@@ -142,16 +121,14 @@ export const enUS: 语言包 = {
         禁止操作: 'Forbidden Actions',
         镜像分支: 'Mirror Branch',
       },
-      选项: {
-        是: 'Yes',
-        否: 'No',
-      },
+      选项: { 是: 'Yes', 否: 'No' },
     },
     'cib/build': {
       keyword: 'Build',
       描述: 'Build in a clean environment; "works on my machine" no more',
       字段: {
         工具链: 'Toolchain',
+        包管理器: 'Package Manager',
         版本: 'Version',
         安装命令: 'Install Command',
         额外setup: 'Extra Setup',
@@ -166,6 +143,10 @@ export const enUS: 语言包 = {
         Go: 'Go',
         Rust: 'Rust',
         自定义: 'Custom',
+        npm: 'npm',
+        pnpm: 'pnpm',
+        yarn: 'yarn',
+        bun: 'bun',
         开: 'On',
         关: 'Off',
       },
@@ -180,10 +161,7 @@ export const enUS: 语言包 = {
         上传报告: 'Upload Report',
         报告路径: 'Report Path',
       },
-      选项: {
-        是: 'Yes',
-        否: 'No',
-      },
+      选项: { 是: 'Yes', 否: 'No' },
     },
     'cib/audit': {
       keyword: 'Audit Log',
@@ -193,10 +171,7 @@ export const enUS: 语言包 = {
         保留天数: 'Retention (days)',
         上传产物: 'Upload Artifact',
       },
-      选项: {
-        是: 'Yes',
-        否: 'No',
-      },
+      选项: { 是: 'Yes', 否: 'No' },
     },
     'cib/provenance': {
       keyword: 'Provenance',
@@ -209,12 +184,7 @@ export const enUS: 语言包 = {
         证据路径: 'Evidence Path',
         失败动作: 'On Failure',
       },
-      选项: {
-        是: 'Yes',
-        否: 'No',
-        拒绝: 'Reject',
-        仅告警: 'Warn only',
-      },
+      选项: { 是: 'Yes', 否: 'No', 拒绝: 'Reject', 仅告警: 'Warn only' },
     },
   },
 };

@@ -57,6 +57,7 @@ function 字段转BlocklyArg(字段: 字段描述, blockId: string, 包: 语言�
     }
 }
 
+// ========== 特殊积木：自动编译（动态字段） ==========
 function 注册自动编译积木(block: CIBBlock<any>, 包: 语言包) {
     const 积木名 = 取积木名(包, block.id, block.keyword);
     const 图标 = block.meta.icon ?? '🔨';
@@ -84,11 +85,11 @@ function 注册自动编译积木(block: CIBBlock<any>, 包: 语言包) {
 
             this.appendDummyInput('版本行')
                 .appendField(`${字段名('版本')}:`)
-                .appendField(new Blockly.FieldTextInput('20'), '版本');
+                .appendField(new Blockly.FieldTextInput('22'), '版本');
 
             this.appendDummyInput('构建命令行')
                 .appendField(`${字段名('构建命令')}:`)
-                .appendField(new Blockly.FieldTextInput('npm run build'), '构建命令');
+                .appendField(new Blockly.FieldTextInput('build'), '构建命令');
 
             this.appendDummyInput('工作目录行')
                 .appendField(`${字段名('工作目录')}:`)
@@ -115,34 +116,46 @@ function 注册自动编译积木(block: CIBBlock<any>, 包: 语言包) {
         },
 
         updateShape_(this: Blockly.Block, 工具链: string) {
-            // 1. 先读旧值（字符串化，防 object Object）
-            let 额外值 = '';
-            let 安装值 = '';
-            try {
-                const v1 = this.getFieldValue('额外setup');
-                if (typeof v1 === 'string') 额外值 = v1;
-            } catch {}
-            try {
-                const v2 = this.getFieldValue('安装命令');
-                if (typeof v2 === 'string') 安装值 = v2;
-            } catch {}
-
-            // 2. 清掉所有自定义 input（逐个 try，避免某个不存在时崩）
-            for (const name of ['自定义块1', '自定义块2']) {
+            // 清旧动态字段
+            for (const name of ['自定义块1', '自定义块2', '包管理器块']) {
                 if (this.getInput(name)) {
-                    try {
-                        this.removeInput(name);
-                    } catch (e) {
-                        console.warn(`removeInput(${name}) 失败：`, e);
-                    }
+                    try { this.removeInput(name); } catch {}
                 }
             }
 
-            // 3. 非"自定义"：直接返回，字段已清
-            if (工具链 !== '自定义') return;
+            // Node：显示包管理器
+            if (工具链 === 'Node') {
+                let 值 = 'pnpm';
+                try { 值 = this.getFieldValue('包管理器') ?? 'pnpm'; } catch {}
 
-            // 4. "自定义"：重新加字段
-            try {
+                this.appendDummyInput('包管理器块')
+                    .appendField(`${字段名('包管理器')}:`)
+                    .appendField(
+                        new Blockly.FieldDropdown([
+                            ['npm', 'npm'],
+                            ['pnpm', 'pnpm'],
+                            ['yarn', 'yarn'],
+                            ['bun', 'bun'],
+                        ]),
+                        '包管理器',
+                    );
+                try { this.setFieldValue(值, '包管理器'); } catch {}
+                this.moveInputBefore('包管理器块', '版本行');
+            }
+
+            // 自定义：额外 setup + 安装命令
+            if (工具链 === '自定义') {
+                let 额外值 = '';
+                let 安装值 = '';
+                try {
+                    const v1 = this.getFieldValue('额外setup');
+                    if (typeof v1 === 'string') 额外值 = v1;
+                } catch {}
+                try {
+                    const v2 = this.getFieldValue('安装命令');
+                    if (typeof v2 === 'string') 安装值 = v2;
+                } catch {}
+
                 this.appendDummyInput('自定义块1')
                     .appendField(`${字段名('额外setup')}:`)
                     .appendField(new Blockly.FieldTextInput(额外值), '额外setup');
@@ -151,21 +164,14 @@ function 注册自动编译积木(block: CIBBlock<any>, 包: 语言包) {
                     .appendField(`${字段名('安装命令')}:`)
                     .appendField(new Blockly.FieldTextInput(安装值), '安装命令');
 
-                // 移到"版本行"之前
-                if (this.getInput('自定义块1')) {
-                    this.moveInputBefore('自定义块1', '版本行');
-                }
-                if (this.getInput('自定义块2')) {
-                    this.moveInputBefore('自定义块2', '版本行');
-                }
-            } catch (e) {
-                console.warn('添加自定义字段失败：', e);
+                this.moveInputBefore('自定义块1', '版本行');
+                this.moveInputBefore('自定义块2', '版本行');
             }
         },
     };
 }
 
-// ========== 通用积木注册 ==========
+// ========== 通用积木定义 ==========
 function 生成定义(block: CIBBlock<any>, 包: 语言包): any {
     const 字段列表 = block.schema;
     const 积木名 = 取积木名(包, block.id, block.keyword);
@@ -245,7 +251,7 @@ function 生成定义(block: CIBBlock<any>, 包: 语言包): any {
 export function 注册积木(block: CIBBlock<any>, 包: 语言包) {
     const key = `${block.id}@${包.语言}`;
 
-    // 特殊积木：自动编译用动态字段
+    // 自动编译：动态字段
     if (block.id === 'cib/build') {
         注册自动编译积木(block, 包);
         已注册.add(key);
