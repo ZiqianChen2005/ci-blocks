@@ -1,0 +1,220 @@
+import type { 语言包 } from './类型';
+
+export const enUS: 语言包 = {
+  语言: 'en-US',
+  名称: 'English',
+
+  通用: {
+    删除: 'Delete',
+    添加: 'Add',
+    取消: 'Cancel',
+    确定: 'OK',
+    加载中: 'Loading…',
+    未命名工作流: 'Untitled Workflow',
+  },
+
+  工具栏: {
+    品牌: 'CI Blocks',
+    文件: 'File',
+    新建: 'New',
+    打开: 'Open…',
+    保存: 'Save (.cib)',
+    另存为: 'Save As…',
+    语言: 'Language:',
+    工作流名称占位: 'Workflow name',
+    新建确认: 'New will clear the current canvas. Continue?',
+    已新建: 'Created',
+    已保存: 'Saved',
+    打开失败: 'Failed to open',
+    已打开: 'Opened',
+  },
+
+  预览栏: {
+    标题: 'YAML Preview',
+    生成失败: 'Generation failed',
+  },
+
+  分类: {
+    基础: 'Basic',
+    门禁: 'Gate',
+    构建: 'Build',
+    校验: 'Test',
+    科研: 'Research',
+    项目: 'Project',
+    审计: 'Audit',
+    环境: 'Env',
+  },
+
+  积木: {
+    'cib/if-action': {
+      keyword: 'Trigger',
+      描述: 'Define the workflow trigger event (on:)',
+      字段: {
+        事件: 'Event',
+        分支: 'Branch',
+        作业: 'Jobs',
+      },
+    },
+    'cib/if-branch': {
+      keyword: 'Branch Filter',
+      描述: 'Restrict which branches / paths / tags trigger',
+      字段: {
+        过滤键: 'Filter Key',
+        过滤值: 'Filter Value',
+      },
+      选项: {
+        branches: 'branches',
+        paths: 'paths',
+        tags: 'tags',
+      },
+    },
+    'cib/if-workflow': {
+      keyword: 'Workflow Condition',
+      描述: "Branch on the preceding business job's result (gates are excluded)",
+      字段: {
+        通过时执行: 'On Success',
+        失败时执行: 'On Failure',
+      },
+    },
+    'cib/time-gate': {
+      keyword: 'Time Gate',
+      描述: 'Reject commits outside the valid time window (with timezone support)',
+      字段: {
+        基准时间: 'Base Time',
+        时区: 'Timezone',
+        模式: 'Mode',
+      },
+      选项: {
+        开仓冻结: 'Open Freeze',
+        超时封仓: 'Timeout Close',
+      },
+    },
+    'cib/count-gate': {
+      keyword: 'Count Gate',
+      描述: 'Block by commit / file counts when over or under the threshold',
+      字段: {
+        计数来源: 'Count Source',
+        阈值: 'Threshold',
+        比较: 'Comparison',
+        计数范围: 'Count Range',
+        模式: 'Mode',
+      },
+      选项: {
+        仓库总提交数: 'Repo Total Commits',
+        分支提交数: 'Branch Commits',
+        文件修改次数: 'Files Modified',
+        自定义: 'Custom',
+        超过: 'Greater than',
+        未达: 'Less than',
+        等于: 'Equal to',
+        '本次 push 内': 'In this push',
+        从仓库创建至今: 'All time',
+        指定时间之后: 'Since',
+        硬拦截: 'Hard block',
+        仅告警: 'Warn only',
+      },
+    },
+    'cib/ownership-guard': {
+      keyword: 'Ownership Guard',
+      描述: 'Enforce per-user path ownership; block unauthorized changes',
+      字段: {
+        负责人表: 'Owners',
+        操作类型: 'Operation',
+        违规动作: 'On Violation',
+        豁免者: 'Exempt',
+      },
+      选项: {
+        'force push': 'force push',
+        '任意 push': 'any push',
+        'PR 合并': 'PR merge',
+        拒绝合并: 'Reject merge',
+        仅告警: 'Warn only',
+        记录审计: 'Audit log',
+      },
+    },
+    'cib/branch-protect': {
+      keyword: 'Branch Protect',
+      描述: 'Protect main branches, detect direct pushes, mirror to backup',
+      字段: {
+        保护分支: 'Protected Branches',
+        要求CI通过: 'Require CI',
+        要求review数: 'Min Reviews',
+        禁止操作: 'Forbidden Actions',
+        镜像分支: 'Mirror Branch',
+      },
+      选项: {
+        是: 'Yes',
+        否: 'No',
+      },
+    },
+    'cib/build': {
+      keyword: 'Build',
+      描述: 'Build in a clean environment; "works on my machine" no more',
+      字段: {
+        工具链: 'Toolchain',
+        版本: 'Version',
+        安装命令: 'Install Command',
+        额外setup: 'Extra Setup',
+        构建命令: 'Build Command',
+        工作目录: 'Working Directory',
+        缓存: 'Cache',
+      },
+      选项: {
+        Node: 'Node',
+        Python: 'Python',
+        Java: 'Java',
+        Go: 'Go',
+        Rust: 'Rust',
+        自定义: 'Custom',
+        开: 'On',
+        关: 'Off',
+      },
+    },
+    'cib/test': {
+      keyword: 'Test',
+      描述: '"I tested locally" no more — run tests in a clean environment',
+      字段: {
+        测试命令: 'Test Command',
+        工作目录: 'Working Directory',
+        超时分钟: 'Timeout (min)',
+        上传报告: 'Upload Report',
+        报告路径: 'Report Path',
+      },
+      选项: {
+        是: 'Yes',
+        否: 'No',
+      },
+    },
+    'cib/audit': {
+      keyword: 'Audit Log',
+      描述: 'Log key CI information; no more arguing about who did what',
+      字段: {
+        日志路径: 'Log Directory',
+        保留天数: 'Retention (days)',
+        上传产物: 'Upload Artifact',
+      },
+      选项: {
+        是: 'Yes',
+        否: 'No',
+      },
+    },
+    'cib/provenance': {
+      keyword: 'Provenance',
+      描述: 'Run your own verification script and keep evidence; no more "data mismatch"',
+      字段: {
+        校验命令: 'Verify Command',
+        工作目录: 'Working Directory',
+        超时分钟: 'Timeout (min)',
+        上传证据: 'Upload Evidence',
+        证据路径: 'Evidence Path',
+        失败动作: 'On Failure',
+      },
+      选项: {
+        是: 'Yes',
+        否: 'No',
+        拒绝: 'Reject',
+        仅告警: 'Warn only',
+      },
+    },
+  },
+};

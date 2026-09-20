@@ -1,0 +1,13 @@
+{
+  "name": "@cib/core",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "./src/index.ts",
+  "scripts": {
+    "demo": "tsx src/demo.ts",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "yaml": "^2.4.0"
+  }
+}

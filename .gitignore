@@ -1,0 +1,14 @@
+node_modules/
+dist/
+build/
+*.log
+.DS_Store
+.idea/*
+!.idea/encodings.xml
+.vscode/*
+!.vscode/settings.json
+*.local
+.env
+.env.*
+!.env.example
+coverage/

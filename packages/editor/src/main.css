@@ -1,0 +1,71 @@
+* { box-sizing: border-box; }
+
+html, body, #root {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    width: 100%;
+    font-family: -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif;
+    font-size: 14px;
+    color: #222;
+    background: #f5f5f5;
+}
+
+/* ============ Blockly toolbox 加固 ============ */
+.blocklyToolbox {
+    width: 200px !important;
+    min-width: 200px !important;
+    height: 100% !important;
+    background: #fafafa !important;
+    border-right: 1px solid #ddd !important;
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    overflow-y: auto !important;
+    z-index: 70 !important;
+}
+
+.blocklyToolboxCategoryGroup {
+    padding: 6px 0 !important;
+}
+
+.blocklyToolboxCategoryContainer {
+    cursor: pointer !important;
+}
+
+.blocklyToolboxCategory {
+    padding: 8px 12px !important;
+    display: flex !important;
+    align-items: center !important;
+    font-size: 13px !important;
+    color: #333 !important;
+    user-select: none !important;
+}
+
+.blocklyToolboxCategory:hover {
+    background: #eee !important;
+}
+
+.blocklyToolboxCategoryLabel {
+    margin-left: 6px !important;
+    color: #333 !important;
+}
+
+.blocklyToolboxCategoryIcon {
+    display: inline-block !important;
+    width: 12px !important;
+    height: 12px !important;
+}
+
+/* workspace 让出左侧 200px */
+.blocklyWorkspace {
+    position: absolute !important;
+    left: 200px !important;
+    top: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+}
+
+.blocklyFlyout {
+    z-index: 200 !important;
+}
