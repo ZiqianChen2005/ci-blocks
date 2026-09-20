@@ -482,7 +482,7 @@ describe('次数铡刀', () => {
         expect(yaml).toContain('CIB_THRESHOLD: "50"');
         expect(yaml).toContain('CIB_COMPARE: gt');
         expect(yaml).toContain('CIB_RANGE: all_time');
-        expect(yaml).toContain('CIB_MODE: block.ts');
+        expect(yaml).toContain('CIB_MODE: block');
         expect(yaml).toContain('次数检查未通过');
         expect(yaml).toContain('次数检查通过');
     });
