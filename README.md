@@ -25,10 +25,14 @@ CI Blocks 是一个可视化的 CI 配置生成器。你在画布上拖拽积木
 
 ## 为什么做这个
 
-> 无数个规则守护者在面对着玩偶之家中"那我呢？"的场景。\
-> 没人看见他们的付出，甚至有人还在肆意践踏。\
-> **约定没有强制力。CI 规则才能。**\
-> CIB，就是为了这种情况设计的。
+> 无数个规则守护者在面对着玩偶之家中"那我呢？"的场景。
+> 没人看见他们的付出，甚至有人还在肆意践踏。
+> **约定没有强制力。CI 规则才能。**
+> **获奖是结果，不是特权。**
+> **模型没有优势，不代表其他地方可以让路。**
+> 该革命了。CIB，就是为了这种情况设计的。
+
+完整宣言见 [docs/宣言.md](docs/宣言.md)。
 
 ---
 
@@ -36,13 +40,14 @@ CI Blocks 是一个可视化的 CI 配置生成器。你在画布上拖拽积木
 
 - **积木化编辑**：拖拽积木，上下吸附，像搭乐高
 - **实时 YAML**：改一个字段，右侧脚本立即更新
-- **分类工具箱**：基础 / 门禁 / 构建 / 校验 / 科研 / 项目 / 审计 / 环境
+- **分类工具箱**：基础 / 门禁 / 构建 / 校验 / 科研 / 项目 / 审计 / 环境 / 部署
 - **中文关键字**：积木名、字段名、报错信息全中文
 - **时区支持**：时间铡刀支持 UTC-12:00 ~ UTC+12:00，步长 30 分钟
+- **动态字段**：根据工具链显示不同字段（如 Node 显示包管理器）
 - **平台无关**：通过 IR 中间层，同一套积木支持 GitHub / GitLab 等
 - **保存 / 读取**：画布存为 `.cib` 文件，可分享、可版本管理
 - **多语言**：简中 / 英文，语言切换实时生效
-- **社区可扩展**：积木即插件，用户可以造自己的积木
+- **社区可扩展**：`@cib/block-sdk` 抽包，第三方可独立写积木
 
 ---
 
@@ -90,10 +95,10 @@ pnpm test
 ```
 ci-blocks/
 ├── packages/
+│   ├── block-sdk/          @cib/block-sdk —— 积木开发接口（第三方只装这个）
 │   ├── core/               @cib/core —— IR、emitter、validator
 │   ├── blocks-official/    @cib/blocks-official —— 官方积木
 │   ├── i18n/               @cib/i18n —— 语言包
-│   ├── block-sdk/          @cib/block-sdk —— 社区积木接口（规划中）
 │   └── editor/             @cib/editor —— React + Blockly 可视化编辑器
 ├── docs/                   文档
 └── examples/               示例工作流
@@ -119,6 +124,8 @@ GitHub Actions / GitLab CI YAML
 关键设计：积木不直接产出 YAML，而是产出 IR（中间表示）。Emitter 负责把 IR 翻译成具体平台的脚本。这样同一块积木可以跨平台复用。
 
 **语言与字段分离**：显示文本走语言包，IR 和生成的 YAML 用稳定标识符，切语言不影响输出。
+
+**接口与实现分离**：`@cib/block-sdk` 只有接口（无 emitter / validator），第三方可独立写积木，不拉整个 core。
 
 ---
 
@@ -163,13 +170,21 @@ GitHub Actions / GitLab CI YAML
 
 | 积木 | id | 状态 |
 |---|---|---|
-| 契约对应 | `cib/contract` | 🚧 规划中 |
+| 契约对应 | `cib/contract` | ✅ 已实现 |
 
 ### 审计（📝）
 
 | 积木 | id | 状态 |
 |---|---|---|
 | 行为记录 | `cib/audit` | ✅ 已实现 |
+
+### 部署（🚀）
+
+| 积木 | id | 状态 |
+|---|---|---|
+| 部署到 GitHub Pages | `cib/deploy-gh-pages` | ✅ 已实现 |
+
+**共 13 个积木，9 个分类。**
 
 ---
 
@@ -217,7 +232,8 @@ GitHub Actions / GitLab CI YAML
 在干净环境里构建项目。
 
 - **工具链**：Node / Python / Java / Go / Rust / 自定义
-- **自定义**：额外 setup + 安装命令 + 构建命令
+- **包管理器**：npm / pnpm / yarn / bun（仅 Node）
+- **缓存**：开 / 关 / 自定义（缓存路径 / 键 / 恢复键）
 - **场景**：专治"本地能跑、CI 跑不起来"
 
 ### 成品校验 `cib/test`
@@ -238,6 +254,15 @@ GitHub Actions / GitLab CI YAML
 - **失败动作**：拒绝 / 仅告警
 - **场景**：科研项目防"数据对不上、结果复现不了"
 
+### 契约对应 `cib/contract`
+
+校验前后端字段对齐。
+
+- **契约类型**：OpenAPI / Protobuf / GraphQL / JSON Schema / TypeScript
+- **校验命令**：用户自填，如 `npx openapi-diff`
+- **上传差异报告**：保留 diff 记录
+- **场景**：防止 `userName` vs `user_name` 式联调灾难
+
 ### 行为记录 `cib/audit`
 
 把 CI 运行的关键信息记录成日志。
@@ -247,43 +272,80 @@ GitHub Actions / GitLab CI YAML
 - **配合判定条件**：只在上游失败时记录
 - **场景**：甩锅时不用吵
 
+### 部署到 GitHub Pages `cib/deploy-gh-pages`
+
+把构建产物发布到 GitHub Pages。
+
+- **发布目录**：如 `dist`
+- **目标分支**：如 `gh-pages`
+- **环境**：GitHub 环境名
+- **CNAME**：自定义域名
+- **场景**：静态站自动发布
+
 ---
 
 ## 写你自己的积木
 
-一个积木就是一份 JSON + 一个 `生成IR` 函数。示例：
+第三方只装 `@cib/block-sdk` 即可：
 
 ```ts
-import { 定义积木, type IRNode } from '@cib/core';
+import { 定义积木, type IRNode } from '@cib/block-sdk';
 
-export const 时间铡刀 = 定义积木<{ 基准时间: string; 模式: string }>({
-  id: 'cib/time-gate',
-  keyword: '时间铡刀',
-  category: '门禁',
+export default 定义积木({
+  id: 'my/hello',
+  keyword: '你好',
+  version: '0.1.0',
+  category: '基础',
   meta: {
-    icon: '⏰',
-    author: 'CIB 官方',
+    icon: '👋',
+    author: '你的名字',
     license: 'MIT',
-    描述: '在合法时间窗口之外的提交都会被拒绝',
-    tags: ['封仓', '截止'],
+    描述: '打印一句问候',
+    tags: ['hello'],
   },
   schema: [
-    { 键: '基准时间', 类型: '日期时间', 必填: true },
-    { 键: '模式', 类型: '枚举', 选项: ['开仓冻结', '超时封仓'], 默认: '超时封仓' },
+    { 键: '名字', 类型: '文本', 默认: '世界' },
   ],
   生成IR: (输入): IRNode[] => [
     {
-      kind: '门禁',
-      keyword: '时间铡刀',
-      blockId: 'cib/time-gate',
-      拦截时机: '提交时',
-      参数: 输入,
+      kind: '作业',
+      id: 'hello',
+      keyword: '你好',
+      运行环境: 'ubuntu-latest',
+      步骤: [
+        {
+          kind: '步骤',
+          keyword: '打印',
+          name: `问候 ${输入.名字}`,
+          run: `echo "你好，${输入.名字}！"`,
+        },
+      ],
     },
   ],
 });
 ```
 
 编辑器会自动读 `schema` 渲染表单，读 `生成IR` 产出 IR，最终由 emitter 转成 YAML。
+
+**详细文档**见 [docs/积木编写指南.md](docs/积木编写指南.md)。
+
+---
+
+## 加载外部积木
+
+编辑器支持通过 URL 参数加载外部积木：
+
+```
+http://127.0.0.1:5173/?blocks=http://localhost:3000/hello.js
+```
+
+**多个用逗号分隔**：
+
+```
+http://127.0.0.1:5173/?blocks=http://localhost:3000/a.js,http://localhost:3000/b.js
+```
+
+外部积木需编译成 JS（ESM），提供 `default` 导出。
 
 ---
 
@@ -311,10 +373,6 @@ jobs:
           DEADLINE_RAW="2026-09-20T20:00:00"
           TZ_TARGET="${CIB_TZ}"
           ...
-          if [ "$NOW_EPOCH" -gt "$DEADLINE_EPOCH" ]; then
-            echo "::error::封仓时间已过，拒绝提交（时区 $CIB_TZ_LABEL）"
-            exit 1
-          fi
 ```
 
 ### 构建 → 测试 → 失败时审计
@@ -351,6 +409,38 @@ jobs:
       - 收集行为记录
 ```
 
+### 部署静态站到 GitHub Pages
+
+用「自动编译」+「部署到 GitHub Pages」组合：
+
+```yaml
+name: 部署
+on:
+  push:
+    branches:
+      - main
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - 检出代码
+      - 设置 Node.js
+      - 安装依赖
+      - 构建
+  deploy_gh_pages:
+    needs:
+      - build
+    environment:
+      name: production
+      url: https://user.github.io/repo
+    runs-on: ubuntu-latest
+    steps:
+      - 检出代码
+      - 部署到 GitHub Pages
+```
+
+**前提**：仓库 Settings → Pages 选 `gh-pages` 分支；Actions 权限选 **Read and write**。
+
 ---
 
 ## 路线图
@@ -365,14 +455,22 @@ jobs:
 - [x] 语言包（简中 / 英文）
 - [x] 保存 / 读取 `.cib` 文件
 - [x] 自动编译支持自定义工具链（动态字段）
-- [ ] 契约对应积木
+- [x] 自动编译支持 pnpm / yarn / bun
+- [x] 自动编译缓存支持自定义
+- [x] 契约对应积木
+- [x] 部署分类 + GitHub Pages
+- [x] `@cib/block-sdk` 抽包
+- [x] 编辑器支持加载外部积木
 - [ ] 业务作业自动依赖 `gates`
-- [ ] 自动编译支持 pnpm / yarn / bun
+- [ ] UI 面板加载外部积木
+- [ ] 沙箱执行外部积木
 - [ ] 双向同步（粘贴 YAML → 还原积木）
-- [ ] `@cib/block-sdk` 抽包
 - [ ] 积木市场
 - [ ] GitLab CI / CircleCI emitter
 - [ ] CLI（`cib build`）
+- [ ] 更多部署积木（Vercel / Netlify / SSH / Docker / K8s）
+- [ ] 通知积木（Slack / 邮件 / Webhook）
+- [ ] Artifact 上传 / 下载积木
 
 ---
 
@@ -384,6 +482,7 @@ jobs:
 - **加平台**：在 `packages/core/src/emitter/` 下新建 emitter
 - **加语言**：在 `packages/i18n/src/` 下新建语言包
 - **改编辑器**：在 `packages/editor/src/` 下提 PR
+- **第三方积木**：装 `@cib/block-sdk`，发 npm 包
 
 开发规范：
 
@@ -404,6 +503,15 @@ jobs:
 | 测试 | Vitest |
 | 包管理 | pnpm workspace |
 | i18n | 自研语言包（BCP 47） |
+| 积木接口 | @cib/block-sdk |
+
+---
+
+## 文档
+
+- [积木设计图](docs/积木设计图.md)
+- [积木编写指南](docs/积木编写指南.md)
+- [项目宣言](docs/宣言.md)
 
 ---
 

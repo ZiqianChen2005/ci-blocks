@@ -1,7 +1,8 @@
 {
-  "name": "@cib/core",
+  "name": "@cib/block-sdk",
   "version": "0.1.0",
   "type": "module",
+  "description": "CI Blocks 积木开发接口（无 emitter / validator 依赖）",
   "main": "./src/index.ts",
   "types": "./src/index.ts",
   "exports": {
@@ -11,12 +12,5 @@
       "default": "./src/index.ts"
     }
   },
-  "scripts": {
-    "demo": "tsx src/demo.ts",
-    "test": "vitest run"
-  },
-  "dependencies": {
-    "@cib/block-sdk": "workspace:*",
-    "yaml": "^2.4.0"
-  }
+  "dependencies": {}
 }

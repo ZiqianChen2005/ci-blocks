@@ -636,3 +636,108 @@ describe('追根溯源', () => {
         expect(yaml).toContain('CIB_FAIL_ACTION: 仅告警');
     });
 });
+
+// ========== 契约对应 ==========
+describe('契约对应', () => {
+    it('生成校验命令 + 报告上传', () => {
+        const 工作流: IR工作流 = {
+            名称: '契约测试',
+            触发器: [],
+            节点: [
+                {
+                    kind: '作业',
+                    id: 'contract',
+                    keyword: '契约对应',
+                    运行环境: 'ubuntu-latest',
+                    步骤: [
+                        {
+                            kind: '步骤',
+                            keyword: '检出代码',
+                            name: '检出代码',
+                            uses: 'actions/checkout@v4',
+                            with: { 'fetch-depth': 0 },
+                        },
+                        {
+                            kind: '步骤',
+                            keyword: '契约校验',
+                            name: '契约校验',
+                            'working-directory': '.',
+                            timeout: 10,
+                            env: {
+                                CIB_CONTRACT_TYPE: 'OpenAPI',
+                                CIB_CONTRACT_FILE: 'api/openapi.yaml',
+                                CIB_FAIL_ACTION: '拒绝',
+                            },
+                            run: [
+                                'set +e',
+                                '(npx openapi-diff api/openapi.yaml api/openapi.yaml)',
+                                'RC=$?',
+                                'set -e',
+                                '',
+                                'if [ "$RC" -ne 0 ]; then',
+                                '  if [ "$CIB_FAIL_ACTION" = "仅告警" ]; then',
+                                '    echo "::warning::契约校验失败（退出码 $RC），仅告警"',
+                                '    exit 0',
+                                '  fi',
+                                '  echo "::error::契约校验失败（退出码 $RC）"',
+                                '  exit 1',
+                                'fi',
+                                '',
+                                'echo "契约校验通过"',
+                            ].join('\n'),
+                        },
+                        {
+                            kind: '步骤',
+                            keyword: '上传差异报告',
+                            name: '上传差异报告',
+                            if: 'always()',
+                            uses: 'actions/upload-artifact@v4',
+                            with: {
+                                name: 'contract-diff',
+                                path: 'contract-diff/',
+                                'retention-days': 30,
+                                'if-no-files-found': 'ignore',
+                            },
+                        },
+                    ],
+                },
+            ],
+        };
+        const yaml = 生成GitHubYAML(工作流);
+        expect(yaml).toContain('契约校验');
+        expect(yaml).toContain('api/openapi.yaml');
+        expect(yaml).toContain('CIB_CONTRACT_TYPE: OpenAPI');
+        expect(yaml).toContain('contract-diff');
+        expect(yaml).toContain('if-no-files-found: ignore');
+    });
+
+    it('仅告警模式', () => {
+        const 工作流: IR工作流 = {
+            名称: '契约测试',
+            触发器: [],
+            节点: [
+                {
+                    kind: '作业',
+                    id: 'contract',
+                    keyword: '契约对应',
+                    运行环境: 'ubuntu-latest',
+                    步骤: [
+                        {
+                            kind: '步骤',
+                            keyword: '契约校验',
+                            name: '契约校验',
+                            env: {
+                                CIB_CONTRACT_TYPE: 'GraphQL',
+                                CIB_FAIL_ACTION: '仅告警',
+                            },
+                            run: '...',
+                        },
+                    ],
+                },
+            ],
+        };
+        const yaml = 生成GitHubYAML(工作流);
+        expect(yaml).toContain('CIB_CONTRACT_TYPE: GraphQL');
+        expect(yaml).toContain('CIB_FAIL_ACTION: 仅告警');
+    });
+});

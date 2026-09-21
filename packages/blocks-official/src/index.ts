@@ -30,3 +30,9 @@ export type { 行为记录输入 } from './audit/block';
 
 export { 追根溯源 } from './provenance/block';
 export type { 追根溯源输入 } from './provenance/block';
+
+export { 契约对应 } from './contract/block';
+export type { 契约对应输入 } from './contract/block';
+
+export { 部署GitHubPages } from './deploy-gh-pages/block';
+export type { 部署GitHubPages输入 } from './deploy-gh-pages/block';

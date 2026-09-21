@@ -1,4 +1,4 @@
-import { 定义积木, type IRNode } from '@cib/core';
+import { 定义积木, type IRNode } from '@cib/block-sdk';
 
 export interface 越权控制输入 {
     负责人表: string;

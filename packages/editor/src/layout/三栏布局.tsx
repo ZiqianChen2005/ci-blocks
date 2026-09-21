@@ -15,15 +15,35 @@ import {
     成品校验,
     行为记录,
     追根溯源,
+    契约对应,
+    部署GitHubPages,
 } from '@cib/blocks-official';
 import { 设置积木箱 } from '../store/编辑器状态';
 import { use语言 } from '../store/语言状态';
+import { 加载外部积木, 从URL读取积木参数 } from '../blocks/加载器';
+
+const 内置积木 = [
+    行为条件,
+    分支条件,
+    工作流判定条件,
+    时间铡刀,
+    次数铡刀,
+    越权控制,
+    异地容灾,
+    自动编译,
+    成品校验,
+    行为记录,
+    追根溯源,
+    契约对应,
+    部署GitHubPages,
+];
 
 export function 三栏布局() {
     const 工作区 = useRef<Blockly.WorkspaceSvg | null>(null);
     const 语言包 = use语言((s) => s.语言包);
     const [工作流名称, 设置工作流名称] = useState(语言包.通用.未命名工作流);
     const 用户改过 = useRef(false);
+    const [加载状态, set加载状态] = useState('');
 
     useEffect(() => {
         if (!用户改过.current) {
@@ -32,19 +52,32 @@ export function 三栏布局() {
     }, [语言包]);
 
     useEffect(() => {
-        设置积木箱([
-            行为条件,
-            分支条件,
-            工作流判定条件,
-            时间铡刀,
-            次数铡刀,
-            越权控制,
-            异地容灾,
-            自动编译,
-            成品校验,
-            行为记录,
-            追根溯源,
-        ]);
+        const 初始化 = async () => {
+            const urls = 从URL读取积木参数();
+
+            if (urls.length === 0) {
+                设置积木箱(内置积木);
+                return;
+            }
+
+            set加载状态(`正在加载 ${urls.length} 个外部积木…`);
+            const { 积木: 外部积木, 错误 } = await 加载外部积木(urls);
+
+            if (错误.length > 0) {
+                console.warn('外部积木加载错误：', 错误);
+                set加载状态(
+                    `加载 ${外部积木.length} 个外部积木，${错误.length} 个失败`,
+                );
+                setTimeout(() => set加载状态(''), 3000);
+            } else {
+                set加载状态(`已加载 ${外部积木.length} 个外部积木`);
+                setTimeout(() => set加载状态(''), 2000);
+            }
+
+            设置积木箱([...内置积木, ...外部积木]);
+        };
+
+        初始化();
     }, []);
 
     const 包装设置工作流名称 = (n: string) => {
@@ -59,6 +92,18 @@ export function 三栏布局() {
                 工作流名称={工作流名称}
                 设置工作流名称={包装设置工作流名称}
             />
+            {加载状态 && (
+                <div
+                    style={{
+                        background: '#f39c12',
+                        color: 'white',
+                        padding: '4px 16px',
+                        fontSize: 12,
+                    }}
+                >
+                    {加载状态}
+                </div>
+            )}
             <div
                 style={{
                     flex: 1,

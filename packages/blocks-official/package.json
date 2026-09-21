@@ -12,6 +12,6 @@
     }
   },
   "dependencies": {
-    "@cib/core": "workspace:*"
+    "@cib/block-sdk": "workspace:*"
   }
 }

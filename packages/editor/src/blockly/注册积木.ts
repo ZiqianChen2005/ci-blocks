@@ -13,6 +13,7 @@ const 分类颜色: Record<string, number> = {
     项目: 30,
     审计: 160,
     环境: 200,
+    部署: 40,
 };
 
 const 年选项 = Array.from({ length: 20 }, (_, i) => String(2025 + i));
@@ -87,6 +88,20 @@ function 注册自动编译积木(block: CIBBlock<any>, 包: 语言包) {
                 .appendField(`${字段名('版本')}:`)
                 .appendField(new Blockly.FieldTextInput('22'), '版本');
 
+            this.appendDummyInput('缓存行')
+                .appendField(`${字段名('缓存')}:`)
+                .appendField(
+                    new Blockly.FieldDropdown(
+                        [
+                            [选项名('开'), '开'],
+                            [选项名('关'), '关'],
+                            [选项名('自定义'), '自定义'],
+                        ],
+                        this.校验缓存,
+                    ),
+                    '缓存',
+                );
+
             this.appendDummyInput('构建命令行')
                 .appendField(`${字段名('构建命令')}:`)
                 .appendField(new Blockly.FieldTextInput('build'), '构建命令');
@@ -94,10 +109,6 @@ function 注册自动编译积木(block: CIBBlock<any>, 包: 语言包) {
             this.appendDummyInput('工作目录行')
                 .appendField(`${字段名('工作目录')}:`)
                 .appendField(new Blockly.FieldTextInput('.'), '工作目录');
-
-            this.appendDummyInput('缓存行')
-                .appendField(`${字段名('缓存')}:`)
-                .appendField(new Blockly.FieldDropdown([['开', '开'], ['关', '关']]), '缓存');
 
             this.setPreviousStatement(true, null);
             this.setNextStatement(true, null);
@@ -115,19 +126,54 @@ function 注册自动编译积木(block: CIBBlock<any>, 包: 语言包) {
             return newValue;
         },
 
+        校验缓存(this: any, newValue: string) {
+            const 源 = this.getSourceBlock();
+            if (源 && typeof 源.updateShape_ === 'function') {
+                let 工具链 = 'Node';
+                try { 工具链 = 源.getFieldValue('工具链'); } catch {}
+                源.updateShape_(工具链);
+            }
+            return newValue;
+        },
+
         updateShape_(this: Blockly.Block, 工具链: string) {
-            // 清旧动态字段
-            for (const name of ['自定义块1', '自定义块2', '包管理器块']) {
+            // ========== 1. 先读所有动态字段的当前值 ==========
+            let 包管理器值 = 'pnpm';
+            try { 包管理器值 = this.getFieldValue('包管理器') ?? 'pnpm'; } catch {}
+
+            let 额外值 = '';
+            try { 额外值 = this.getFieldValue('额外setup') ?? ''; } catch {}
+
+            let 安装值 = '';
+            try { 安装值 = this.getFieldValue('安装命令') ?? ''; } catch {}
+
+            let 缓存路径值 = '';
+            try { 缓存路径值 = this.getFieldValue('缓存路径') ?? ''; } catch {}
+
+            let 缓存键值 = '';
+            try { 缓存键值 = this.getFieldValue('缓存键') ?? ''; } catch {}
+
+            let 恢复键值 = '';
+            try { 恢复键值 = this.getFieldValue('恢复键') ?? ''; } catch {}
+
+            // ========== 2. 清旧动态字段 ==========
+            const 动态字段 = [
+                '自定义块1',
+                '自定义块2',
+                '包管理器块',
+                '缓存自定义块1',
+                '缓存自定义块2',
+                '缓存自定义块3',
+            ];
+            for (const name of 动态字段) {
                 if (this.getInput(name)) {
                     try { this.removeInput(name); } catch {}
                 }
             }
 
-            // Node：显示包管理器
+            // ========== 3. 重建 ==========
+            // Node：包管理器
             if (工具链 === 'Node') {
-                let 值 = 'pnpm';
-                try { 值 = this.getFieldValue('包管理器') ?? 'pnpm'; } catch {}
-
                 this.appendDummyInput('包管理器块')
                     .appendField(`${字段名('包管理器')}:`)
                     .appendField(
@@ -139,23 +185,12 @@ function 注册自动编译积木(block: CIBBlock<any>, 包: 语言包) {
                         ]),
                         '包管理器',
                     );
-                try { this.setFieldValue(值, '包管理器'); } catch {}
+                try { this.setFieldValue(包管理器值, '包管理器'); } catch {}
                 this.moveInputBefore('包管理器块', '版本行');
             }
 
             // 自定义：额外 setup + 安装命令
             if (工具链 === '自定义') {
-                let 额外值 = '';
-                let 安装值 = '';
-                try {
-                    const v1 = this.getFieldValue('额外setup');
-                    if (typeof v1 === 'string') 额外值 = v1;
-                } catch {}
-                try {
-                    const v2 = this.getFieldValue('安装命令');
-                    if (typeof v2 === 'string') 安装值 = v2;
-                } catch {}
-
                 this.appendDummyInput('自定义块1')
                     .appendField(`${字段名('额外setup')}:`)
                     .appendField(new Blockly.FieldTextInput(额外值), '额外setup');
@@ -167,7 +202,28 @@ function 注册自动编译积木(block: CIBBlock<any>, 包: 语言包) {
                 this.moveInputBefore('自定义块1', '版本行');
                 this.moveInputBefore('自定义块2', '版本行');
             }
-        },
+
+            // 缓存 = 自定义：路径 + 键 + 恢复键
+            let 缓存值 = '开';
+            try { 缓存值 = this.getFieldValue('缓存') ?? '开'; } catch {}
+            if (缓存值 === '自定义') {
+                this.appendDummyInput('缓存自定义块1')
+                    .appendField(`${字段名('缓存路径')}:`)
+                    .appendField(new Blockly.FieldTextInput(缓存路径值), '缓存路径');
+
+                this.appendDummyInput('缓存自定义块2')
+                    .appendField(`${字段名('缓存键')}:`)
+                    .appendField(new Blockly.FieldTextInput(缓存键值), '缓存键');
+
+                this.appendDummyInput('缓存自定义块3')
+                    .appendField(`${字段名('恢复键')}:`)
+                    .appendField(new Blockly.FieldTextInput(恢复键值), '恢复键');
+
+                this.moveInputBefore('缓存自定义块1', '构建命令行');
+                this.moveInputBefore('缓存自定义块2', '构建命令行');
+                this.moveInputBefore('缓存自定义块3', '构建命令行');
+            }
+        }
     };
 }
 
@@ -251,7 +307,6 @@ function 生成定义(block: CIBBlock<any>, 包: 语言包): any {
 export function 注册积木(block: CIBBlock<any>, 包: 语言包) {
     const key = `${block.id}@${包.语言}`;
 
-    // 自动编译：动态字段
     if (block.id === 'cib/build') {
         注册自动编译积木(block, 包);
         已注册.add(key);

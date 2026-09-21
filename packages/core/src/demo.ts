@@ -1,8 +1,8 @@
-import { 生成GitHubYAML, type IR工作流 } from './index.js';
-import { 时间铡刀 } from '../../blocks-official/src/index.js';
+import { 生成GitHubYAML, type IR工作流 } from './index';
+import { 时间铡刀 } from '../../blocks-official/src/index';
 
 const 节点 = 时间铡刀.生成IR(
-    { 基准时间: '2026-09-20T20:00:00Z', 模式: '超时封仓' },
+    { 基准时间: '2026-09-20T20:00:00', 时区: 'UTC+08:00', 模式: '超时封仓' },
     { 工作流名称: '封仓门禁' },
 );
 

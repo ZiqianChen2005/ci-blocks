@@ -9,6 +9,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@cib/block-sdk": "workspace:*",
     "@cib/core": "workspace:*",
     "@cib/blocks-official": "workspace:*",
     "@cib/i18n": "workspace:*",

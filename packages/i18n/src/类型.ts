@@ -43,6 +43,7 @@ export interface 语言包 {
         项目: string;
         审计: string;
         环境: string;
+        部署: string;
     };
 
     积木: Record<string, {

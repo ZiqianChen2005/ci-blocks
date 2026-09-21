@@ -1,4 +1,4 @@
-import { 定义积木, type IRNode } from '@cib/core';
+import { 定义积木, type IRNode } from '@cib/block-sdk';
 
 export interface 工作流判定条件输入 {
     // 无输入字段，判定来源由工作区转IR 自动填

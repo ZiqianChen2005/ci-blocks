@@ -1,4 +1,4 @@
-import { 定义积木, type IRNode } from '@cib/core';
+import { 定义积木, type IRNode } from '@cib/block-sdk';
 
 export interface 行为条件输入 {
     事件: 'push' | 'pull_request' | 'schedule' | 'tag' | 'workflow_dispatch';
