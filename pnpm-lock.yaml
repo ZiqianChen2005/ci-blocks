@@ -18,20 +18,28 @@ importers:
         specifier: ^1.4.0
         version: 1.6.1(jsdom@29.1.1)
 
+  packages/block-sdk: {}
+
   packages/blocks-official:
     dependencies:
-      '@cib/core':
+      '@cib/block-sdk':
         specifier: workspace:*
-        version: link:../core
+        version: link:../block-sdk
 
   packages/core:
     dependencies:
+      '@cib/block-sdk':
+        specifier: workspace:*
+        version: link:../block-sdk
       yaml:
         specifier: ^2.4.0
         version: 2.9.1
 
   packages/editor:
     dependencies:
+      '@cib/block-sdk':
+        specifier: workspace:*
+        version: link:../block-sdk
       '@cib/blocks-official':
         specifier: workspace:*
         version: link:../blocks-official

@@ -372,6 +372,7 @@ function 作业转YAML(
     return {
         ...((额外?.needs ?? 作业.needs) ? { needs: 额外?.needs ?? 作业.needs } : {}),
         ...(额外?.if ? { if: 额外.if } : {}),
+        ...(作业.environment ? { environment: 作业.environment } : {}),
         'runs-on': 作业.运行环境,
         steps: 作业.步骤.map(步骤转YAML),
     };

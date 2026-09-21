@@ -1,4 +1,4 @@
-import { 定义积木, type IRNode } from '@cib/core';
+import { 定义积木, type IRNode } from '@cib/block-sdk';
 
 export interface 分支条件输入 {
     过滤键: 'branches' | 'paths' | 'tags';

@@ -16,3 +16,7 @@ export const use编辑器 = create<编辑器状态>((set) => ({
 export function 设置积木箱(blocks: CIBBlock<any>[]) {
     use编辑器.setState({ 积木箱: blocks });
 }
+
+if (typeof window !== 'undefined') {
+    (window as any).__cibStore = use编辑器;
+}

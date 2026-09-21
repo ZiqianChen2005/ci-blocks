@@ -1,4 +1,4 @@
-import { 定义积木, type IRNode } from '@cib/core';
+import { 定义积木, type IRNode } from '@cib/block-sdk';
 
 export interface 次数铡刀输入 {
     计数来源: '仓库总提交数' | '分支提交数' | '文件修改次数' | '自定义';

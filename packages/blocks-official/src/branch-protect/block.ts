@@ -1,4 +1,4 @@
-import { 定义积木, type IRNode, type IR步骤 } from '@cib/core';
+import { 定义积木, type IRNode, type IR步骤 } from '@cib/block-sdk';
 
 export interface 异地容灾输入 {
     保护分支: string;

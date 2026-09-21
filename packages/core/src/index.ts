@@ -1,3 +1,5 @@
-export * from './ir/types.js';
-export * from './block/types.js';
-export { 生成GitHubYAML } from './emitter/github.js';
+// 从 SDK 统一导出（只一次）
+export * from '@cib/block-sdk';
+
+// core 自己的
+export { 生成GitHubYAML } from './emitter/github';

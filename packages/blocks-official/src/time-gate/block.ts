@@ -1,4 +1,4 @@
-import { 定义积木, type IRNode } from '@cib/core';
+import { 定义积木, type IRNode } from '@cib/block-sdk';
 
 /** 生成 UTC-12:00 ~ UTC+12:00，步长 30 分钟 */
 function 生成时区选项(): string[] {

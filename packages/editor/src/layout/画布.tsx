@@ -46,28 +46,27 @@ export function 画布() {
 
         工作区.current = ws;
 
+        // 恢复画布内容
         if (快照) {
             try {
                 Blockly.serialization.workspaces.load(快照, ws);
             } catch (e) {
                 console.warn('恢复工作区失败：', e);
             }
-        }
-
-        const 更新 = () => {
-            // 动态字段恢复（cib/build 的 updateShape_）
-            try {
-                const 所有块 = ws.getAllBlocks(false);
-                for (const b of 所有块) {
-                    if (b.type === 'cib/build' && typeof (b as any).updateShape_ === 'function') {
+            // load 后恢复动态字段（只调一次）
+            const 所有块 = ws.getAllBlocks(false);
+            for (const b of 所有块) {
+                if (b.type === 'cib/build' && typeof (b as any).updateShape_ === 'function') {
+                    try {
                         const 工具链 = b.getFieldValue('工具链');
                         (b as any).updateShape_(工具链);
-                    }
+                    } catch {}
                 }
-            } catch (e) {
-                // 忽略
             }
+        }
 
+        // 变更监听：只重算 IR 和存快照，不调 updateShape_
+        const 更新 = () => {
             const nodes = 工作区转IR(ws, (id) => 积木箱.find((b) => b.id === id));
             setIR(nodes);
             try {
@@ -102,6 +101,7 @@ const 分类顺序: CIBBlock<any>['category'][] = [
     '项目',
     '审计',
     '环境',
+    '部署',
 ];
 
 const 分类颜色: Record<string, string> = {
@@ -113,6 +113,7 @@ const 分类颜色: Record<string, string> = {
     项目: '#d35400',
     审计: '#16a085',
     环境: '#7f8c8d',
+    部署: '#f39c12',
 };
 
 const 分类图标: Record<string, string> = {
@@ -124,6 +125,7 @@ const 分类图标: Record<string, string> = {
     项目: '📦',
     审计: '📝',
     环境: '⚙️',
+    部署: '🚀',
 };
 
 function 生成工具箱(积木箱: CIBBlock<any>[], 包: 语言包) {
