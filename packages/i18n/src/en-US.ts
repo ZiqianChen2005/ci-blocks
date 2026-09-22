@@ -16,10 +16,21 @@ export const enUS: 语言包 = {
   工具栏: {
     品牌: 'CI Blocks',
     文件: 'File',
+    编辑: 'Edit',
     新建: 'New',
     打开: 'Open…',
     保存: 'Save (.cib)',
     另存为: 'Save As…',
+    撤销: 'Undo',
+    重做: 'Redo',
+    复制: 'Copy',
+    剪切: 'Cut',
+    粘贴: 'Paste',
+    删除: 'Delete',
+    全选: 'Select All',
+    清空画布: 'Clear Canvas',
+    清空确认: 'Clear canvas will lose all blocks. Continue?',
+    已清空: 'Cleared',
     语言: 'Language:',
     工作流名称占位: 'Workflow name',
     新建确认: 'New will clear the current canvas. Continue?',
@@ -27,6 +38,11 @@ export const enUS: 语言包 = {
     已保存: 'Saved',
     打开失败: 'Failed to open',
     已打开: 'Opened',
+    右键菜单: {
+      复制为JSON: 'Copy as JSON',
+      清空画布: 'Clear Canvas',
+      清空确认: 'Clear canvas will lose all blocks. Continue?',
+    },
   },
 
   预览栏: {
@@ -228,5 +244,10 @@ export const enUS: 语言包 = {
       },
       选项: { 是: 'Yes', 否: 'No' },
     },
+  },
+  右键菜单: {
+    复制为JSON: 'Copy as JSON',
+    清空画布: 'Clear Canvas',
+    清空确认: 'Clear canvas will lose all blocks. Continue?',
   },
 };
