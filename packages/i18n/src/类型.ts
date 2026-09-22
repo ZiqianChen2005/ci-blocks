@@ -17,6 +17,8 @@ export interface 语言包 {
         品牌: string;
         文件: string;
         编辑: string;
+        视图: string;
+        帮助: string;
         新建: string;
         打开: string;
         保存: string;
@@ -38,10 +40,52 @@ export interface 语言包 {
         已保存: string;
         打开失败: string;
         已打开: string;
+        未选中积木: string;
+        已复制: string;
+        已剪切: string;
+        已粘贴: string;
+        粘贴失败: string;
+        已删除: string;
+        已选中: string;   // "已选中 %1 个积木"
         右键菜单: {
             复制为JSON: string;
             清空画布: string;
             清空确认: string;
+        };
+        视图菜单: {
+            放大: string;
+            缩小: string;
+            重置缩放: string;
+            折叠所有: string;
+            展开所有: string;
+            整理积木: string;
+            已整理: string;
+        };
+        帮助菜单: {
+            文档: string;
+            快捷键: string;
+            关于: string;
+            GitHub仓库: string;
+            关于标题: string;
+            关于描述: string;
+            版本: string;
+            快捷键标题: string;
+            分组编辑器: string;
+            分组画布: string;
+            分组缩放: string;
+            快捷键保存: string;
+            快捷键打开: string;
+            快捷键新建: string;
+            快捷键撤销: string;
+            快捷键重做: string;
+            快捷键复制: string;
+            快捷键剪切: string;
+            快捷键粘贴: string;
+            快捷键删除: string;
+            快捷键全选: string;
+            快捷键滚轮缩放: string;
+            快捷键放大: string;
+            快捷键缩小: string;
         };
     };
 
