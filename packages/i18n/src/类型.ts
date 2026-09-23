@@ -18,11 +18,19 @@ export interface 语言包 {
         文件: string;
         编辑: string;
         视图: string;
+        工具: string;
         帮助: string;
         新建: string;
         打开: string;
         保存: string;
         另存为: string;
+        导出为: string;
+        导出GitHubYAML: string;
+        导出GitLabYAML: string;
+        导出CircleCI: string;
+        导出Jenkinsfile: string;
+        导出通用YAML: string;
+        导出积木JSON: string;
         撤销: string;
         重做: string;
         复制: string;
@@ -38,6 +46,11 @@ export interface 语言包 {
         新建确认: string;
         已新建: string;
         已保存: string;
+        已另存为: string;
+        已导出: string;
+        保存失败: string;
+        暂未实现: string;
+        取消保存: string;
         打开失败: string;
         已打开: string;
         未选中积木: string;
@@ -46,7 +59,7 @@ export interface 语言包 {
         已粘贴: string;
         粘贴失败: string;
         已删除: string;
-        已选中: string;   // "已选中 %1 个积木"
+        已选中: string;
         右键菜单: {
             复制为JSON: string;
             清空画布: string;
@@ -60,6 +73,18 @@ export interface 语言包 {
             展开所有: string;
             整理积木: string;
             已整理: string;
+        };
+        工具菜单: {
+            加载外部积木: string;
+            加载外部积木标题: string;
+            加载外部积木说明: string;
+            加载: string;
+            导出YAML: string;
+            复制YAML: string;
+            已复制YAML: string;
+            已加载外部积木: string;
+            加载失败: string;
+            无YAML: string;
         };
         帮助菜单: {
             文档: string;

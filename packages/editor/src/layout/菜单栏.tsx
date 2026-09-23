@@ -1,6 +1,11 @@
 import { useState, useRef, useEffect } from 'react';
 import * as Blockly from 'blockly';
-import { 导出CIB, 下载CIB } from '../cib/保存';
+import {
+    导出CIB,
+    保存CIB文件,
+    导出YAML文件,
+    导出JSON文件,
+} from '../cib/保存';
 import { 读取CIB文件, 应用CIB到工作区 } from '../cib/读取';
 import { use语言 } from '../store/语言状态';
 import type { 语言 } from '@cib/i18n';
@@ -11,13 +16,15 @@ interface Props {
     设置工作流名称: (n: string) => void;
 }
 
-type 菜单名 = '文件' | '编辑' | '视图' | '帮助' | null;
+type 菜单名 = '文件' | '编辑' | '视图' | '工具' | '帮助' | null;
 
 export function 菜单栏({ 工作区, 工作流名称, 设置工作流名称 }: Props) {
     const [当前菜单, set当前菜单] = useState<菜单名>(null);
     const [提示, set提示] = useState('');
     const [显示关于, set显示关于] = useState(false);
     const [显示快捷键, set显示快捷键] = useState(false);
+    const [显示加载外部积木, set显示加载外部积木] = useState(false);
+    const [外部积木URL, set外部积木URL] = useState('');
     const 文件输入 = useRef<HTMLInputElement>(null);
     const 语言 = use语言((s) => s.语言);
     const 设置语言 = use语言((s) => s.设置语言);
@@ -41,7 +48,7 @@ export function 菜单栏({ 工作区, 工作流名称, 设置工作流名称 }:
         setTimeout(() => set提示(''), 2000);
     };
 
-    const 切换菜单 = (名: '文件' | '编辑' | '视图' | '帮助') => {
+    const 切换菜单 = (名: '文件' | '编辑' | '视图' | '工具' | '帮助') => {
         set当前菜单((v) => (v === 名 ? null : 名));
     };
 
@@ -55,12 +62,32 @@ export function 菜单栏({ 工作区, 工作流名称, 设置工作流名称 }:
         显示提示(工具.已新建);
     };
 
-    const 保存 = () => {
+    const 保存 = async () => {
         if (!工作区.current) return;
         const 文件 = 导出CIB(工作区.current, 语言, 工作流名称);
-        下载CIB(文件, `${工作流名称 || 语言包.通用.未命名工作流}.cib`);
+        const 结果 = await 保存CIB文件(文件, 工作流名称 || 语言包.通用.未命名工作流);
         set当前菜单(null);
-        显示提示(工具.已保存);
+        if (结果.成功) {
+            显示提示(工具.已保存);
+        } else if (结果.用户取消) {
+            显示提示(工具.取消保存);
+        } else {
+            alert(`${工具.保存失败}：${结果.错误}`);
+        }
+    };
+
+    const 另存为 = async () => {
+        if (!工作区.current) return;
+        const 文件 = 导出CIB(工作区.current, 语言, 工作流名称);
+        const 结果 = await 保存CIB文件(文件, `${工作流名称 || 语言包.通用.未命名工作流}-副本`);
+        set当前菜单(null);
+        if (结果.成功) {
+            显示提示(工具.已另存为);
+        } else if (结果.用户取消) {
+            显示提示(工具.取消保存);
+        } else {
+            alert(`${工具.保存失败}：${结果.错误}`);
+        }
     };
 
     const 打开 = () => {
@@ -82,6 +109,48 @@ export function 菜单栏({ 工作区, 工作流名称, 设置工作流名称 }:
             alert(`${工具.打开失败}：${(err as Error).message}`);
         }
         e.target.value = '';
+    };
+
+    const 生成YAML = (): string | null => {
+        const yaml = document.querySelector('pre')?.textContent ?? '';
+        return yaml || null;
+    };
+
+    const 导出为 = async (格式: 'github' | 'gitlab' | 'circleci' | 'jenkins' | 'generic') => {
+        set当前菜单(null);
+        if (格式 !== 'github' && 格式 !== 'generic') {
+            alert(`${工具.暂未实现}：${格式}`);
+            return;
+        }
+        const yaml = 生成YAML();
+        if (!yaml) {
+            显示提示(工具.工具菜单.无YAML);
+            return;
+        }
+        const 名 = 工作流名称 || 'workflow';
+        const 结果 = await 导出YAML文件(yaml, 名);
+        if (结果.成功) {
+            显示提示(工具.已导出);
+        } else if (结果.用户取消) {
+            显示提示(工具.取消保存);
+        } else {
+            alert(`${工具.保存失败}：${结果.错误}`);
+        }
+    };
+
+    const 导出积木JSON = async () => {
+        if (!工作区.current) return;
+        const json = Blockly.serialization.workspaces.save(工作区.current);
+        const 名 = `${工作流名称 || 'workflow'}.blocks`;
+        const 结果 = await 导出JSON文件(JSON.stringify(json, null, 2), 名);
+        set当前菜单(null);
+        if (结果.成功) {
+            显示提示(工具.已导出);
+        } else if (结果.用户取消) {
+            显示提示(工具.取消保存);
+        } else {
+            alert(`${工具.保存失败}：${结果.错误}`);
+        }
     };
 
     // ========== 编辑 ==========
@@ -205,6 +274,38 @@ export function 菜单栏({ 工作区, 工作流名称, 设置工作流名称 }:
         显示提示(工具.视图菜单.已整理);
     };
 
+    // ========== 工具 ==========
+    const 复制YAML = async () => {
+        const yaml = 生成YAML();
+        if (!yaml) {
+            显示提示(工具.工具菜单.无YAML);
+            set当前菜单(null);
+            return;
+        }
+        await navigator.clipboard.writeText(yaml);
+        显示提示(工具.工具菜单.已复制YAML);
+        set当前菜单(null);
+    };
+
+    const 执行加载外部积木 = async () => {
+        const urls = 外部积木URL.split(',').map((s) => s.trim()).filter(Boolean);
+        if (urls.length === 0) return;
+        try {
+            const { 加载外部积木 } = await import('../blocks/加载器');
+            const { 积木: 外部积木, 错误 } = await 加载外部积木(urls);
+            if (错误.length > 0) {
+                alert(
+                    `${工具.工具菜单.加载失败}：\n${错误.map((e) => `${e.url}: ${e.消息}`).join('\n')}`,
+                );
+            }
+            显示提示(工具.工具菜单.已加载外部积木.replace('%1', String(外部积木.length)));
+            set显示加载外部积木(false);
+            set外部积木URL('');
+        } catch (e) {
+            alert(`${工具.工具菜单.加载失败}：${(e as Error).message}`);
+        }
+    };
+
     // ========== 帮助 ==========
     const 打开文档 = () => {
         window.open('https://github.com/ZiqianChen2005/ci-blocks#readme', '_blank');
@@ -222,7 +323,15 @@ export function 菜单栏({ 工作区, 工作流名称, 设置工作流名称 }:
             const ctrl = e.ctrlKey || e.metaKey;
             if (!ctrl) return;
 
-            if (e.key === 's') { e.preventDefault(); 保存(); return; }
+            if (e.key === 's') {
+                e.preventDefault();
+                if (e.shiftKey) {
+                    另存为();
+                } else {
+                    保存();
+                }
+                return;
+            }
             if (e.key === 'o') { e.preventDefault(); 打开(); return; }
             if (e.key === 'n') { e.preventDefault(); 新建(); return; }
         };
@@ -248,15 +357,29 @@ export function 菜单栏({ 工作区, 工作流名称, 设置工作流名称 }:
                 <strong>{工具.品牌}</strong>
 
                 <div ref={菜单容器} style={{ display: 'flex', gap: 4 }}>
+                    {/* 文件 */}
                     <菜单按钮 名={工具.文件} 开={当前菜单 === '文件'} onClick={() => 切换菜单('文件')} />
                     {当前菜单 === '文件' && (
                         <下拉菜单>
                             <菜单项 onClick={新建} 快捷键="Ctrl+N">{工具.新建}</菜单项>
                             <菜单项 onClick={打开} 快捷键="Ctrl+O">{工具.打开}</菜单项>
+                            <分隔线 />
                             <菜单项 onClick={保存} 快捷键="Ctrl+S">{工具.保存}</菜单项>
+                            <菜单项 onClick={另存为} 快捷键="Ctrl+Shift+S">{工具.另存为}</菜单项>
+                            <分隔线 />
+                            <子菜单 名={工具.导出为}>
+                                <菜单项 onClick={() => 导出为('github')}>{工具.导出GitHubYAML}</菜单项>
+                                <菜单项 onClick={() => 导出为('gitlab')}>{工具.导出GitLabYAML}</菜单项>
+                                <菜单项 onClick={() => 导出为('circleci')}>{工具.导出CircleCI}</菜单项>
+                                <菜单项 onClick={() => 导出为('jenkins')}>{工具.导出Jenkinsfile}</菜单项>
+                                <菜单项 onClick={() => 导出为('generic')}>{工具.导出通用YAML}</菜单项>
+                            </子菜单>
+                            <分隔线 />
+                            <菜单项 onClick={导出积木JSON}>{工具.导出积木JSON}</菜单项>
                         </下拉菜单>
                     )}
 
+                    {/* 编辑 */}
                     <菜单按钮 名={工具.编辑} 开={当前菜单 === '编辑'} onClick={() => 切换菜单('编辑')} />
                     {当前菜单 === '编辑' && (
                         <下拉菜单>
@@ -274,6 +397,7 @@ export function 菜单栏({ 工作区, 工作流名称, 设置工作流名称 }:
                         </下拉菜单>
                     )}
 
+                    {/* 视图 */}
                     <菜单按钮 名={工具.视图} 开={当前菜单 === '视图'} onClick={() => 切换菜单('视图')} />
                     {当前菜单 === '视图' && (
                         <下拉菜单>
@@ -287,6 +411,19 @@ export function 菜单栏({ 工作区, 工作流名称, 设置工作流名称 }:
                         </下拉菜单>
                     )}
 
+                    {/* 工具 */}
+                    <菜单按钮 名={工具.工具} 开={当前菜单 === '工具'} onClick={() => 切换菜单('工具')} />
+                    {当前菜单 === '工具' && (
+                        <下拉菜单>
+                            <菜单项 onClick={() => { set显示加载外部积木(true); set当前菜单(null); }}>
+                                {工具.工具菜单.加载外部积木}
+                            </菜单项>
+                            <分隔线 />
+                            <菜单项 onClick={复制YAML}>{工具.工具菜单.复制YAML}</菜单项>
+                        </下拉菜单>
+                    )}
+
+                    {/* 帮助 */}
                     <菜单按钮 名={工具.帮助} 开={当前菜单 === '帮助'} onClick={() => 切换菜单('帮助')} />
                     {当前菜单 === '帮助' && (
                         <下拉菜单>
@@ -342,12 +479,58 @@ export function 菜单栏({ 工作区, 工作流名称, 设置工作流名称 }:
                 />
             </div>
 
+            {显示加载外部积木 && (
+                <弹窗 标题={工具.工具菜单.加载外部积木标题} onClose={() => set显示加载外部积木(false)}>
+                    <div style={{ marginBottom: 12, color: '#666', fontSize: 13 }}>
+                        {工具.工具菜单.加载外部积木说明}
+                    </div>
+                    <input
+                        value={外部积木URL}
+                        onChange={(e) => set外部积木URL(e.target.value)}
+                        placeholder="https://example.com/my-block.js"
+                        style={{
+                            width: '100%',
+                            padding: '8px',
+                            border: '1px solid #ccc',
+                            borderRadius: 4,
+                            marginBottom: 16,
+                            boxSizing: 'border-box',
+                        }}
+                    />
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+                        <button
+                            onClick={() => set显示加载外部积木(false)}
+                            style={{
+                                padding: '6px 16px',
+                                border: '1px solid #ccc',
+                                borderRadius: 4,
+                                cursor: 'pointer',
+                                background: 'white',
+                            }}
+                        >
+                            {工具.工具菜单.加载 === '加载' ? '取消' : 'Cancel'}
+                        </button>
+                        <button
+                            onClick={执行加载外部积木}
+                            style={{
+                                padding: '6px 16px',
+                                border: 'none',
+                                borderRadius: 4,
+                                cursor: 'pointer',
+                                background: '#2c3e50',
+                                color: 'white',
+                            }}
+                        >
+                            {工具.工具菜单.加载}
+                        </button>
+                    </div>
+                </弹窗>
+            )}
+
             {显示关于 && (
                 <弹窗 标题={工具.帮助菜单.关于标题} onClose={() => set显示关于(false)}>
                     <div style={{ lineHeight: 1.8 }}>
-                        <div>
-                            <strong>CI Blocks</strong>
-                        </div>
+                        <div><strong>CI Blocks</strong></div>
                         <div>{工具.帮助菜单.关于描述}</div>
                         <div style={{ marginTop: 12, color: '#666', fontSize: 13 }}>
                             {工具.帮助菜单.版本}：0.1.0
@@ -361,6 +544,7 @@ export function 菜单栏({ 工作区, 工作流名称, 设置工作流名称 }:
                     <div style={{ lineHeight: 1.8, fontSize: 13 }}>
                         <div><strong>{工具.帮助菜单.分组编辑器}</strong></div>
                         <div>Ctrl+S：{工具.帮助菜单.快捷键保存}</div>
+                        <div>Ctrl+Shift+S：{工具.另存为}</div>
                         <div>Ctrl+O：{工具.帮助菜单.快捷键打开}</div>
                         <div>Ctrl+N：{工具.帮助菜单.快捷键新建}</div>
                         <div style={{ marginTop: 12 }}><strong>{工具.帮助菜单.分组画布}</strong></div>
@@ -414,7 +598,7 @@ function 下拉菜单({ children }: { children: React.ReactNode }) {
                 border: '1px solid #ccc',
                 borderRadius: 4,
                 boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
-                minWidth: 240,
+                minWidth: 260,
                 zIndex: 200,
                 padding: '4px 0',
             }}
@@ -457,6 +641,51 @@ function 菜单项({
 
 function 分隔线() {
     return <div style={{ height: 1, background: '#eee', margin: '4px 0' }} />;
+}
+
+function 子菜单({ 名, children }: { 名: string; children: React.ReactNode }) {
+    const [悬停, set悬停] = useState(false);
+    return (
+        <div
+            style={{ position: 'relative' }}
+            onMouseEnter={() => set悬停(true)}
+            onMouseLeave={() => set悬停(false)}
+        >
+            <div
+                style={{
+                    padding: '8px 14px',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    fontSize: 13,
+                    background: 悬停 ? '#f0f0f0' : 'white',
+                }}
+            >
+                <span>{名}</span>
+                <span style={{ color: '#999' }}>▶</span>
+            </div>
+            {悬停 && (
+                <div
+                    style={{
+                        position: 'absolute',
+                        top: 0,
+                        left: '100%',
+                        marginLeft: 2,
+                        background: 'white',
+                        border: '1px solid #ccc',
+                        borderRadius: 4,
+                        boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+                        minWidth: 260,
+                        padding: '4px 0',
+                        zIndex: 300,
+                    }}
+                >
+                    {children}
+                </div>
+            )}
+        </div>
+    );
 }
 
 function 弹窗({
