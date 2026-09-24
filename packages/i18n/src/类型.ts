@@ -115,9 +115,13 @@ export interface 语言包 {
     };
 
     预览栏: {
-        标题: string;
+        标题: string;              // "代码预览"
+        平台GitHub: string;        // "GitHub Actions"
+        平台GitLab: string;        // "GitLab CI"
+        平台CircleCI: string;      // "CircleCI"
+        平台Jenkins: string;       // "Jenkins"
         生成失败: string;
-    };
+    },
 
     分类: {
         基础: string;

@@ -115,7 +115,11 @@ export const enUS: 语言包 = {
   },
 
   预览栏: {
-    标题: 'YAML Preview',
+    标题: 'Code Preview',
+    平台GitHub: 'GitHub Actions',
+    平台GitLab: 'GitLab CI',
+    平台CircleCI: 'CircleCI',
+    平台Jenkins: 'Jenkins',
     生成失败: 'Generation failed',
   },
 

@@ -115,7 +115,11 @@ export const zhCN: 语言包 = {
   },
 
   预览栏: {
-    标题: 'YAML 预览',
+    标题: '代码预览',
+    平台GitHub: 'GitHub Actions',
+    平台GitLab: 'GitLab CI',
+    平台CircleCI: 'CircleCI',
+    平台Jenkins: 'Jenkins',
     生成失败: '生成失败',
   },
 

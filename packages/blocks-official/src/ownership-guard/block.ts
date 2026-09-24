@@ -25,7 +25,7 @@ export const 越权控制 = 定义积木<越权控制输入>({
             键: '负责人表',
             类型: '文本',
             必填: true,
-            说明: '每行 "用户ID: 路径模式"，如 alice: frontend/**',
+            说明: '每行 "用户ID: 路径模式"，多行用分号分隔。同一用户多行是"或"关系。\n如 alice: **.doc ; alice: frontend/**.md ; bob: backend/**',
         },
         {
             键: '操作类型',
@@ -64,7 +64,7 @@ export const 越权控制 = 定义积木<越权控制输入>({
         if (!输入.负责人表?.trim()) {
             问题.push({ 级别: '错误' as const, 消息: '负责人表不能为空' });
         } else {
-            const 行列表 = 输入.负责人表.split('\n').filter((l) => l.trim());
+            const 行列表 = 输入.负责人表.split(';').filter((l) => l.trim());
             for (let i = 0; i < 行列表.length; i++) {
                 const 行 = 行列表[i].trim();
                 if (!行.includes(':')) {
