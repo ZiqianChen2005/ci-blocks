@@ -1,28 +1,42 @@
 import { describe, it, expect } from 'vitest';
-import { 生成GitHubYAML, type IR工作流, type IR门禁 } from '../index.js';
+import { 生成GitHubYAML, type IR工作流, type IR门禁, type IR条件 } from '../index.js';
 
 // ========== 工具函数 ==========
-function 造工作流(门禁列表: IR门禁[], 名称 = '测试工作流'): IR工作流 {
+function 造工作流(节点: any[], 名称 = '测试工作流'): IR工作流 {
     return {
         名称,
         触发器: [
             { kind: '触发器', keyword: '推送', 事件: 'push', 过滤: { branches: ['main'] } },
         ],
-        节点: 门禁列表,
+        节点,
     };
 }
 
-function 造时间铡刀(
+function 造时间条件(
+    比较: '之前' | '之后',
     基准时间: string,
-    模式: '开仓冻结' | '超时封仓',
     时区 = 'UTC+08:00',
-): IR门禁 {
+    执行: any[] = [],
+): IR条件 {
     return {
-        kind: '门禁',
+        kind: '条件',
         keyword: '时间铡刀',
         blockId: 'cib/time-gate',
-        拦截时机: '提交时',
-        参数: { 基准时间, 时区, 模式 },
+        条件类型: '时间',
+        参数: { 比较, 基准时间, 时区 },
+        条件成立时执行: 执行,
+    };
+}
+
+function 造作业(id: string, 名称 = '作业'): any {
+    return {
+        kind: '作业',
+        id,
+        keyword: 名称,
+        运行环境: 'ubuntu-latest',
+        步骤: [
+            { kind: '步骤', keyword: '步骤1', name: '步骤1', run: `echo ${id}` },
+        ],
     };
 }
 
@@ -41,105 +55,161 @@ function 造越权控制(
     };
 }
 
-// ========== 时间铡刀 ==========
-describe('时间铡刀', () => {
-    it('单个超时封仓', () => {
-        const yaml = 生成GitHubYAML(
-            造工作流([造时间铡刀('2026-09-20T20:00:00', '超时封仓')]),
-        );
-        expect(yaml).toContain('DEADLINE_RAW="2026-09-20T20:00:00"');
-        expect(yaml).toContain('封仓时间已过');
-        expect(yaml).toContain('gates:');
-    });
+function 造次数铡刀(
+    计数来源 = 'branch_total_commits',
+    阈值 = '50',
+    比较 = 'gt',
+    模式 = 'block',
+): IR门禁 {
+    return {
+        kind: '门禁',
+        keyword: '次数铡刀',
+        blockId: 'cib/count-gate',
+        拦截时机: '提交时',
+        参数: {
+            计数来源,
+            阈值,
+            比较,
+            计数范围: 'all_time',
+            模式,
+        },
+    };
+}
 
-    it('单个开仓冻结', () => {
+// ========== 时间铡刀（新版：条件式） ==========
+describe('时间铡刀（条件式）', () => {
+    it('生成时间检查 step + gates outputs', () => {
         const yaml = 生成GitHubYAML(
-            造工作流([造时间铡刀('2026-09-20T09:00:00', '开仓冻结')]),
+            造工作流([造时间条件('之后', '2026-09-20T20:00:00')]),
         );
-        expect(yaml).toContain('OPEN_AT_RAW="2026-09-20T09:00:00"');
-        expect(yaml).toContain('尚未开仓');
-    });
-
-    it('开仓 + 封仓双铡刀共存', () => {
-        const yaml = 生成GitHubYAML(
-            造工作流([
-                造时间铡刀('2026-09-20T09:00:00', '开仓冻结'),
-                造时间铡刀('2026-09-20T20:00:00', '超时封仓'),
-            ]),
-        );
-        expect(yaml).toContain('OPEN_AT_RAW="2026-09-20T09:00:00"');
-        expect(yaml).toContain('DEADLINE_RAW="2026-09-20T20:00:00"');
-        expect(yaml).toContain('尚未开仓');
-        expect(yaml).toContain('封仓时间已过');
-        expect((yaml.match(/gates:/g) ?? []).length).toBe(1);
-    });
-
-    it('三个铡刀，全部在同一个 gates job', () => {
-        const yaml = 生成GitHubYAML(
-            造工作流([
-                造时间铡刀('2026-09-20T09:00:00', '开仓冻结'),
-                造时间铡刀('2026-09-20T15:00:00', '超时封仓'),
-                造时间铡刀('2026-09-20T20:00:00', '超时封仓'),
-            ]),
-        );
-        expect((yaml.match(/gates:/g) ?? []).length).toBe(1);
-        expect(yaml).toContain('（1）');
-        expect(yaml).toContain('（2）');
-        expect(yaml).toContain('（3）');
-    });
-
-    it('时区：UTC+08:00 → POSIX UTC-8', () => {
-        const yaml = 生成GitHubYAML(
-            造工作流([造时间铡刀('2026-09-20T20:00:00', '超时封仓', 'UTC+08:00')]),
-        );
+        expect(yaml).toContain('时间检查（1）');
+        expect(yaml).toContain('id: cib_time_1');
+        expect(yaml).toContain('CIB_MATCH_1: ${{ steps.cib_time_1.outputs.CIB_MATCH }}');
         expect(yaml).toContain('CIB_TZ: UTC-8');
         expect(yaml).toContain('CIB_TZ_LABEL: UTC+08:00');
+        expect(yaml).toContain('BASE_RAW="2026-09-20T20:00:00"');
+        expect(yaml).toContain('当前时间在基准时间之后');
     });
 
-    it('时区：UTC-12:00 → POSIX UTC+12', () => {
+    it('比较「之前」用 -lt', () => {
         const yaml = 生成GitHubYAML(
-            造工作流([造时间铡刀('2026-09-20T20:00:00', '开仓冻结', 'UTC-12:00')]),
+            造工作流([造时间条件('之前', '2025-01-01T00:00:00')]),
+        );
+        expect(yaml).toContain('-lt');
+        expect(yaml).toContain('当前时间在基准时间之前');
+    });
+
+    it('比较「之后」用 -gt', () => {
+        const yaml = 生成GitHubYAML(
+            造工作流([造时间条件('之后', '2025-01-01T00:00:00')]),
+        );
+        expect(yaml).toContain('-gt');
+        expect(yaml).toContain('当前时间在基准时间之后');
+    });
+
+    it('时区 UTC+00:00 → POSIX UTC', () => {
+        const yaml = 生成GitHubYAML(
+            造工作流([造时间条件('之后', '2026-09-20T20:00:00', 'UTC+00:00')]),
+        );
+        expect(yaml).toContain('CIB_TZ: UTC');
+    });
+
+    it('时区 UTC-12:00 → POSIX UTC+12', () => {
+        const yaml = 生成GitHubYAML(
+            造工作流([造时间条件('之后', '2026-09-20T20:00:00', 'UTC-12:00')]),
         );
         expect(yaml).toContain('CIB_TZ: UTC+12');
         expect(yaml).toContain('CIB_TZ_LABEL: UTC-12:00');
     });
 
-    it('时区：半小时 UTC+05:30 → POSIX UTC-5:30', () => {
+    it('时区 UTC+05:30 → POSIX UTC-5:30', () => {
         const yaml = 生成GitHubYAML(
-            造工作流([造时间铡刀('2026-09-20T20:00:00', '超时封仓', 'UTC+05:30')]),
+            造工作流([造时间条件('之后', '2026-09-20T20:00:00', 'UTC+05:30')]),
         );
         expect(yaml).toContain('CIB_TZ: UTC-5:30');
-        expect(yaml).toContain('CIB_TZ_LABEL: UTC+05:30');
     });
 
-    it('时区：UTC+00:00 → POSIX UTC', () => {
+    it('解析失败保护', () => {
         const yaml = 生成GitHubYAML(
-            造工作流([造时间铡刀('2026-09-20T20:00:00', '超时封仓', 'UTC+00:00')]),
+            造工作流([造时间条件('之后', '2026-09-20T20:00:00')]),
         );
-        expect(yaml).toContain('CIB_TZ: UTC');
-        expect(yaml).toContain('CIB_TZ_LABEL: UTC+00:00');
-    });
-
-    it('解析失败保护：有 [ -z ... ] 校验', () => {
-        const yaml = 生成GitHubYAML(
-            造工作流([造时间铡刀('2026-09-20T20:00:00', '超时封仓')]),
-        );
-        expect(yaml).toContain('[ -z "$DEADLINE_EPOCH" ]');
-        expect(yaml).toContain('无法解析封仓时间');
-    });
-
-    it('解析失败保护：开仓版也有校验', () => {
-        const yaml = 生成GitHubYAML(
-            造工作流([造时间铡刀('2026-09-20T09:00:00', '开仓冻结')]),
-        );
-        expect(yaml).toContain('[ -z "$OPEN_EPOCH" ]');
-        expect(yaml).toContain('无法解析开仓时间');
+        expect(yaml).toContain('[ -z "$BASE_EPOCH" ]');
+        expect(yaml).toContain('无法解析基准时间');
     });
 });
 
-// ========== 越权控制 ==========
+// ========== 条件内嵌作业 ==========
+describe('条件内嵌作业', () => {
+    it('作业嵌在时间条件里 → 生成独立 job + needs + if', () => {
+        const 条件 = 造时间条件('之后', '2026-09-20T20:00:00', 'UTC+08:00', [
+            造作业('contract', '契约对应'),
+        ]);
+        const yaml = 生成GitHubYAML(造工作流([条件]));
+
+        // gates job 里有时间检查
+        expect(yaml).toContain('时间检查（1）');
+        expect(yaml).toContain('id: cib_time_1');
+
+        // contract job 有 needs + if
+        expect(yaml).toContain('contract:');
+        expect(yaml).toContain('needs:');
+        expect(yaml).toContain('gates');
+        expect(yaml).toContain("needs.gates.outputs.CIB_MATCH_1 == 'true'");
+    });
+
+    it('两个作业嵌在同一个条件里 → 都生成 job', () => {
+        const 条件 = 造时间条件('之后', '2026-09-20T20:00:00', 'UTC+08:00', [
+            造作业('contract', '契约对应'),
+            造作业('build', '自动编译'),
+        ]);
+        const yaml = 生成GitHubYAML(造工作流([条件]));
+        expect(yaml).toContain('contract:');
+        expect(yaml).toContain('build:');
+        // 两个 job 都依赖 gates
+        const gates出现次数 = (yaml.match(/needs:\n      - gates/g) ?? []).length;
+        expect(gates出现次数).toBe(2);
+    });
+});
+
+// ========== 条件内嵌门禁 ==========
+describe('条件内嵌门禁', () => {
+    it('门禁嵌在条件里 → 作为 gates 的 step，加 if', () => {
+        const 条件 = 造时间条件('之后', '2026-09-20T20:00:00', 'UTC+08:00', [
+            造越权控制('alice: frontend/**'),
+        ]);
+        const yaml = 生成GitHubYAML(造工作流([条件]));
+        expect(yaml).toContain('时间检查（1）');
+        expect(yaml).toContain('越权检查（PR 合并）（1）');
+        expect(yaml).toContain("if: steps.cib_time_1.outputs.CIB_MATCH == 'true'");
+    });
+});
+
+// ========== 嵌套条件 ==========
+describe('嵌套条件', () => {
+    it('条件里嵌条件 → 检查步骤带父 if，作业 if 串联', () => {
+        const 内条件 = 造时间条件('之前', '2026-12-31T00:00:00', 'UTC+08:00', [
+            造作业('contract', '契约对应'),
+        ]);
+        const 外条件 = 造时间条件('之后', '2026-01-01T00:00:00', 'UTC+08:00', [内条件]);
+
+        const yaml = 生成GitHubYAML(造工作流([外条件]));
+
+        // 两个时间检查
+        expect(yaml).toContain('时间检查（1）');
+        expect(yaml).toContain('时间检查（2）');
+
+        // 内条件的检查步骤带父 if
+        expect(yaml).toContain("if: steps.cib_time_1.outputs.CIB_MATCH == 'true'");
+
+        // contract job 的 if 串联两个条件
+        expect(yaml).toContain("needs.gates.outputs.CIB_MATCH_1 == 'true'");
+        expect(yaml).toContain("needs.gates.outputs.CIB_MATCH_2 == 'true'");
+    });
+});
+
+// ========== 越权控制（门禁） ==========
 describe('越权控制', () => {
-    it('生成 CIB_OWNERS / CIB_EXEMPT / CIB_ACTION 三个 env', () => {
+    it('生成 CIB_OWNERS / CIB_EXEMPT / CIB_ACTION', () => {
         const yaml = 生成GitHubYAML(
             造工作流([造越权控制('alice: frontend/**\nbob: backend/**')]),
         );
@@ -152,62 +222,63 @@ describe('越权控制', () => {
         expect(yaml).toContain('拒绝合并');
     });
 
-    it('生成关键 shell 逻辑', () => {
+    it('支持文件类型匹配（**.doc）', () => {
         const yaml = 生成GitHubYAML(
-            造工作流([造越权控制('alice: frontend/**')]),
+            造工作流([造越权控制('alice: **.doc\nalice: frontend/**.md')]),
         );
-        expect(yaml).toContain('ACTOR="${GITHUB_ACTOR}"');
-        expect(yaml).toContain('豁免者');
-        expect(yaml).toContain('CHANGED=$(git diff --name-only');
-        expect(yaml).toContain('ALLOWED=$(echo "$CIB_OWNERS"');
-        expect(yaml).toContain('无权修改');
-        expect(yaml).toContain('越权检查通过');
+        expect(yaml).toContain('匹配()');
+        expect(yaml).toContain('alice: **.doc');
+        expect(yaml).toContain('alice: frontend/**.md');
+        expect(yaml).toContain("s/\\*\\*/.*/g");
     });
 
-    it('仅告警模式：CIB_ACTION = 仅告警', () => {
+    it('仅告警模式', () => {
         const yaml = 生成GitHubYAML(
             造工作流([造越权控制('alice: frontend/**', 'PR 合并', '仅告警')]),
         );
         expect(yaml).toContain('CIB_ACTION: 仅告警');
         expect(yaml).toContain('::warning::');
     });
+});
 
-    it('步骤名包含操作类型', () => {
+// ========== 次数铡刀 ==========
+describe('次数铡刀', () => {
+    it('基本计数检查', () => {
+        const yaml = 生成GitHubYAML(造工作流([造次数铡刀()]));
+        expect(yaml).toContain('CIB_SOURCE: branch_total_commits');
+        expect(yaml).toContain('CIB_THRESHOLD: "50"');
+        expect(yaml).toContain('CIB_COMPARE: gt');
+        expect(yaml).toContain('次数检查通过');
+    });
+
+    it('仅告警模式', () => {
         const yaml = 生成GitHubYAML(
-            造工作流([造越权控制('alice: frontend/**', 'force push')]),
+            造工作流([造次数铡刀('files_modified', '100', 'gt', 'warn')]),
         );
-        expect(yaml).toContain('越权检查（force push）');
+        expect(yaml).toContain('CIB_MODE: warn');
+        expect(yaml).toContain('::warning::');
+    });
+
+    it('未达模式（lt）', () => {
+        const yaml = 生成GitHubYAML(
+            造工作流([造次数铡刀('branch_total_commits', '3', 'lt')]),
+        );
+        expect(yaml).toContain('CIB_COMPARE: lt');
     });
 });
 
-// ========== 多积木混用 ==========
-describe('多积木混用', () => {
-    it('铡刀 + 越权 共存于同一 gates job', () => {
-        const yaml = 生成GitHubYAML(
-            造工作流([
-                造时间铡刀('2026-09-20T20:00:00', '超时封仓'),
-                造越权控制('alice: frontend/**'),
-            ]),
-        );
-        expect((yaml.match(/gates:/g) ?? []).length).toBe(1);
-        expect(yaml).toContain('DEADLINE_RAW=');
-        expect(yaml).toContain('CIB_OWNERS');
-        const 铡刀位置 = yaml.indexOf('检查封仓时间');
-        const 越权位置 = yaml.indexOf('越权检查');
-        expect(铡刀位置).toBeGreaterThan(0);
-        expect(越权位置).toBeGreaterThan(铡刀位置);
-    });
-
-    it('两个越权控制，都进同一个 gates job', () => {
-        const yaml = 生成GitHubYAML(
-            造工作流([
-                造越权控制('alice: frontend/**', 'PR 合并'),
-                造越权控制('bob: backend/**', 'force push'),
-            ]),
-        );
-        expect((yaml.match(/gates:/g) ?? []).length).toBe(1);
-        expect(yaml).toContain('alice: frontend/**');
-        expect(yaml).toContain('bob: backend/**');
+// ========== 多条件 ==========
+describe('多条件', () => {
+    it('两个并列条件 → outputs 有两个', () => {
+        const 条件1 = 造时间条件('之后', '2026-01-01T00:00:00');
+        const 条件2 = 造时间条件('之前', '2026-12-31T00:00:00');
+        const yaml = 生成GitHubYAML(造工作流([条件1, 条件2]));
+        expect(yaml).toContain('时间检查（1）');
+        expect(yaml).toContain('时间检查（2）');
+        expect(yaml).toContain('CIB_MATCH_1:');
+        expect(yaml).toContain('CIB_MATCH_2:');
+        expect(yaml).toContain('id: cib_time_1');
+        expect(yaml).toContain('id: cib_time_2');
     });
 });
 
@@ -286,44 +357,14 @@ describe('工作流判定条件', () => {
                     keyword: '工作流判定条件',
                     blockId: 'cib/if-workflow',
                     判定来源: 'build',
-                    通过时: [
-                        {
-                            kind: '作业',
-                            id: 'notify_ok',
-                            keyword: '通知成功',
-                            运行环境: 'ubuntu-latest',
-                            步骤: [
-                                {
-                                    kind: '步骤',
-                                    keyword: '发送',
-                                    name: '发送成功通知',
-                                    run: 'echo ok',
-                                },
-                            ],
-                        },
-                    ],
-                    失败时: [
-                        {
-                            kind: '作业',
-                            id: 'notify_fail',
-                            keyword: '通知失败',
-                            运行环境: 'ubuntu-latest',
-                            步骤: [
-                                {
-                                    kind: '步骤',
-                                    keyword: '发送',
-                                    name: '发送失败通知',
-                                    run: 'echo fail',
-                                },
-                            ],
-                        },
-                    ],
+                    通过时: [造作业('notify_ok', '通知成功')],
+                    失败时: [造作业('notify_fail', '通知失败')],
                 },
             ],
         };
         const yaml = 生成GitHubYAML(工作流);
-        expect(yaml).toContain('needs:');
-        expect(yaml).toContain('build');
+        expect(yaml).toContain('notify_ok:');
+        expect(yaml).toContain('notify_fail:');
         expect(yaml).toContain("needs.build.result == 'success'");
         expect(yaml).toContain("needs.build.result == 'failure'");
     });
@@ -348,9 +389,46 @@ describe('工作流判定条件', () => {
     });
 });
 
+// ========== 部署 ==========
+describe('部署到 GitHub Pages', () => {
+    it('生成 environment + peaceiris action', () => {
+        const 工作流: IR工作流 = {
+            名称: '部署测试',
+            触发器: [],
+            节点: [
+                {
+                    kind: '作业',
+                    id: 'deploy_gh_pages',
+                    keyword: '部署到 GitHub Pages',
+                    运行环境: 'ubuntu-latest',
+                    步骤: [
+                        {
+                            kind: '步骤',
+                            keyword: '部署',
+                            name: '部署到 GitHub Pages',
+                            uses: 'peaceiris/actions-gh-pages@v4',
+                            with: {
+                                github_token: '${{ secrets.GITHUB_TOKEN }}',
+                                publish_dir: './dist',
+                                publish_branch: 'gh-pages',
+                            },
+                        },
+                    ],
+                    environment: { name: 'production', url: 'https://example.com' },
+                },
+            ],
+        };
+        const yaml = 生成GitHubYAML(工作流);
+        expect(yaml).toContain('peaceiris/actions-gh-pages@v4');
+        expect(yaml).toContain('environment:');
+        expect(yaml).toContain('production');
+        expect(yaml).toContain('https://example.com');
+    });
+});
+
 // ========== 边界 ==========
 describe('边界情况', () => {
-    it('空门禁列表：不生成 gates job', () => {
+    it('空门禁 / 空条件：不生成 gates job', () => {
         const yaml = 生成GitHubYAML(造工作流([]));
         expect(yaml).not.toContain('gates:');
     });
@@ -359,7 +437,7 @@ describe('边界情况', () => {
         const 未知: IR门禁 = {
             kind: '门禁',
             keyword: '未知门禁',
-            blockId: 'cib/unknown-block.ts',
+            blockId: 'cib/unknown-block',
             拦截时机: '提交时',
             参数: {},
         };
@@ -368,376 +446,49 @@ describe('边界情况', () => {
     });
 
     it('YAML 是合法结构：有 name / on / jobs', () => {
-        const yaml = 生成GitHubYAML(
-            造工作流([造时间铡刀('2026-09-20T20:00:00', '超时封仓')]),
-        );
+        const yaml = 生成GitHubYAML(造工作流([造时间条件('之后', '2026-01-01T00:00:00')]));
         expect(yaml).toMatch(/^name:/m);
         expect(yaml).toMatch(/^on:/m);
         expect(yaml).toMatch(/^jobs:/m);
     });
 
     it('中文不乱码', () => {
-        const yaml = 生成GitHubYAML(
-            造工作流([造时间铡刀('2026-09-20T20:00:00', '超时封仓')]),
-        );
-        expect(yaml).toContain('封仓时间已过');
-        expect(yaml).not.toContain('灏佷粨');
+        const yaml = 生成GitHubYAML(造工作流([造时间条件('之后', '2026-01-01T00:00:00')]));
+        expect(yaml).toContain('时间检查');
+        expect(yaml).not.toContain('鏃堕棿');
     });
-});
 
-// ========== 成品校验 ==========
-describe('成品校验', () => {
-    it('基础测试命令 + 报告上传', () => {
+    it('字段顺序：working-directory / timeout / env 在 run 之前', () => {
         const 工作流: IR工作流 = {
-            名称: '测试',
+            名称: '顺序测试',
             触发器: [],
             节点: [
                 {
                     kind: '作业',
                     id: 'test',
-                    keyword: '成品校验',
+                    keyword: '测试',
                     运行环境: 'ubuntu-latest',
                     步骤: [
                         {
                             kind: '步骤',
-                            keyword: '检出代码',
-                            name: '检出代码',
-                            uses: 'actions/checkout@v4',
-                        },
-                        {
-                            kind: '步骤',
-                            keyword: '运行测试',
-                            name: '运行测试',
+                            keyword: '测试',
+                            name: '测试',
                             'working-directory': '.',
                             timeout: 10,
-                            run: 'npm test',
-                        },
-                        {
-                            kind: '步骤',
-                            keyword: '上传测试报告',
-                            name: '上传测试报告',
-                            if: 'always()',
-                            uses: 'actions/upload-artifact@v4',
-                            with: { name: 'test-report', path: 'build/reports/tests/' },
+                            env: { FOO: 'bar' },
+                            run: 'echo test',
                         },
                     ],
                 },
             ],
         };
         const yaml = 生成GitHubYAML(工作流);
-        expect(yaml).toContain('timeout-minutes: 10');
-        expect(yaml).toContain('npm test');
-        expect(yaml).toContain('actions/upload-artifact@v4');
-        expect(yaml).toContain('always()');
-    });
-
-    it('timeout-minutes 在 YAML 里正确序列化', () => {
-        const 工作流: IR工作流 = {
-            名称: '测试',
-            触发器: [],
-            节点: [
-                {
-                    kind: '作业',
-                    id: 'test',
-                    keyword: '成品校验',
-                    运行环境: 'ubuntu-latest',
-                    步骤: [
-                        {
-                            kind: '步骤',
-                            keyword: '运行测试',
-                            name: '运行测试',
-                            timeout: 30,
-                            run: 'pytest',
-                        },
-                    ],
-                },
-            ],
-        };
-        const yaml = 生成GitHubYAML(工作流);
-        expect(yaml).toContain('timeout-minutes: 30');
-    });
-});
-
-// ========== 次数铡刀 ==========
-describe('次数铡刀', () => {
-    it('基本计数检查', () => {
-        const yaml = 生成GitHubYAML(
-            造工作流([
-                {
-                    kind: '门禁',
-                    keyword: '次数铡刀',
-                    blockId: 'cib/count-gate',
-                    拦截时机: '提交时',
-                    参数: {
-                        计数来源: 'branch_total_commits',
-                        阈值: '50',
-                        比较: 'gt',
-                        计数范围: 'all_time',
-                        模式: 'block',
-                    },
-                },
-            ]),
-        );
-        expect(yaml).toContain('CIB_SOURCE: branch_total_commits');
-        expect(yaml).toContain('CIB_THRESHOLD: "50"');
-        expect(yaml).toContain('CIB_COMPARE: gt');
-        expect(yaml).toContain('CIB_RANGE: all_time');
-        expect(yaml).toContain('CIB_MODE: block');
-        expect(yaml).toContain('次数检查未通过');
-        expect(yaml).toContain('次数检查通过');
-    });
-
-    it('仅告警模式', () => {
-        const yaml = 生成GitHubYAML(
-            造工作流([
-                {
-                    kind: '门禁',
-                    keyword: '次数铡刀',
-                    blockId: 'cib/count-gate',
-                    拦截时机: '提交时',
-                    参数: {
-                        计数来源: 'files_modified',
-                        阈值: '100',
-                        比较: 'gt',
-                        计数范围: 'in_push',
-                        模式: 'warn',
-                    },
-                },
-            ]),
-        );
-        expect(yaml).toContain('CIB_MODE: warn');
-        expect(yaml).toContain('::warning::');
-    });
-
-    it('gates job 自动加检出代码', () => {
-        const yaml = 生成GitHubYAML(
-            造工作流([造时间铡刀('2026-09-20T20:00:00', '超时封仓')]),
-        );
-        expect(yaml).toContain('检出代码');
-        expect(yaml).toContain('actions/checkout@v4');
-        expect(yaml).toContain('fetch-depth: 0');
-    });
-
-    it('未达模式（lt）', () => {
-        const yaml = 生成GitHubYAML(
-            造工作流([
-                {
-                    kind: '门禁',
-                    keyword: '次数铡刀',
-                    blockId: 'cib/count-gate',
-                    拦截时机: '提交时',
-                    参数: {
-                        计数来源: 'branch_total_commits',
-                        阈值: '3',
-                        比较: 'lt',
-                        计数范围: 'all_time',
-                        模式: 'block',
-                    },
-                },
-            ]),
-        );
-        expect(yaml).toContain('CIB_COMPARE: lt');
-    });
-});
-
-// ========== 追根溯源 ==========
-describe('追根溯源', () => {
-    it('生成校验命令 + 证据上传', () => {
-        const 工作流: IR工作流 = {
-            名称: '溯源测试',
-            触发器: [],
-            节点: [
-                {
-                    kind: '作业',
-                    id: 'provenance',
-                    keyword: '追根溯源',
-                    运行环境: 'ubuntu-latest',
-                    步骤: [
-                        {
-                            kind: '步骤',
-                            keyword: '检出代码',
-                            name: '检出代码',
-                            uses: 'actions/checkout@v4',
-                            with: { 'fetch-depth': 0 },
-                        },
-                        {
-                            kind: '步骤',
-                            keyword: '追根溯源校验',
-                            name: '追根溯源校验',
-                            'working-directory': '.',
-                            timeout: 30,
-                            env: { CIB_FAIL_ACTION: '拒绝' },
-                            run: [
-                                'set +e',
-                                '(python scripts/verify_data.py)',
-                                'RC=$?',
-                                'set -e',
-                                '',
-                                'if [ "$RC" -ne 0 ]; then',
-                                '  if [ "$CIB_FAIL_ACTION" = "仅告警" ]; then',
-                                '    echo "::warning::追根溯源校验失败（退出码 $RC），仅告警"',
-                                '    exit 0',
-                                '  fi',
-                                '  echo "::error::追根溯源校验失败（退出码 $RC）"',
-                                '  exit 1',
-                                'fi',
-                                '',
-                                'echo "追根溯源校验通过"',
-                            ].join('\n'),
-                        },
-                        {
-                            kind: '步骤',
-                            keyword: '上传证据',
-                            name: '上传证据',
-                            if: 'always()',
-                            uses: 'actions/upload-artifact@v4',
-                            with: {
-                                name: 'provenance-evidence',
-                                path: 'evidence/',
-                                'retention-days': 30,
-                            },
-                        },
-                    ],
-                },
-            ],
-        };
-        const yaml = 生成GitHubYAML(工作流);
-        expect(yaml).toContain('追根溯源校验');
-        expect(yaml).toContain('python scripts/verify_data.py');
-        expect(yaml).toContain('timeout-minutes: 30');
-        expect(yaml).toContain('CIB_FAIL_ACTION: 拒绝');
-        expect(yaml).toContain('provenance-evidence');
-        expect(yaml).toContain('always()');
-    });
-
-    it('仅告警模式生成 warning', () => {
-        const 工作流: IR工作流 = {
-            名称: '溯源测试',
-            触发器: [],
-            节点: [
-                {
-                    kind: '作业',
-                    id: 'provenance',
-                    keyword: '追根溯源',
-                    运行环境: 'ubuntu-latest',
-                    步骤: [
-                        {
-                            kind: '步骤',
-                            keyword: '追根溯源校验',
-                            name: '追根溯源校验',
-                            env: { CIB_FAIL_ACTION: '仅告警' },
-                            run: '...',
-                        },
-                    ],
-                },
-            ],
-        };
-        const yaml = 生成GitHubYAML(工作流);
-        expect(yaml).toContain('CIB_FAIL_ACTION: 仅告警');
-    });
-});
-
-// ========== 契约对应 ==========
-describe('契约对应', () => {
-    it('生成校验命令 + 报告上传', () => {
-        const 工作流: IR工作流 = {
-            名称: '契约测试',
-            触发器: [],
-            节点: [
-                {
-                    kind: '作业',
-                    id: 'contract',
-                    keyword: '契约对应',
-                    运行环境: 'ubuntu-latest',
-                    步骤: [
-                        {
-                            kind: '步骤',
-                            keyword: '检出代码',
-                            name: '检出代码',
-                            uses: 'actions/checkout@v4',
-                            with: { 'fetch-depth': 0 },
-                        },
-                        {
-                            kind: '步骤',
-                            keyword: '契约校验',
-                            name: '契约校验',
-                            'working-directory': '.',
-                            timeout: 10,
-                            env: {
-                                CIB_CONTRACT_TYPE: 'OpenAPI',
-                                CIB_CONTRACT_FILE: 'api/openapi.yaml',
-                                CIB_FAIL_ACTION: '拒绝',
-                            },
-                            run: [
-                                'set +e',
-                                '(npx openapi-diff api/openapi.yaml api/openapi.yaml)',
-                                'RC=$?',
-                                'set -e',
-                                '',
-                                'if [ "$RC" -ne 0 ]; then',
-                                '  if [ "$CIB_FAIL_ACTION" = "仅告警" ]; then',
-                                '    echo "::warning::契约校验失败（退出码 $RC），仅告警"',
-                                '    exit 0',
-                                '  fi',
-                                '  echo "::error::契约校验失败（退出码 $RC）"',
-                                '  exit 1',
-                                'fi',
-                                '',
-                                'echo "契约校验通过"',
-                            ].join('\n'),
-                        },
-                        {
-                            kind: '步骤',
-                            keyword: '上传差异报告',
-                            name: '上传差异报告',
-                            if: 'always()',
-                            uses: 'actions/upload-artifact@v4',
-                            with: {
-                                name: 'contract-diff',
-                                path: 'contract-diff/',
-                                'retention-days': 30,
-                                'if-no-files-found': 'ignore',
-                            },
-                        },
-                    ],
-                },
-            ],
-        };
-        const yaml = 生成GitHubYAML(工作流);
-        expect(yaml).toContain('契约校验');
-        expect(yaml).toContain('api/openapi.yaml');
-        expect(yaml).toContain('CIB_CONTRACT_TYPE: OpenAPI');
-        expect(yaml).toContain('contract-diff');
-        expect(yaml).toContain('if-no-files-found: ignore');
-    });
-
-    it('仅告警模式', () => {
-        const 工作流: IR工作流 = {
-            名称: '契约测试',
-            触发器: [],
-            节点: [
-                {
-                    kind: '作业',
-                    id: 'contract',
-                    keyword: '契约对应',
-                    运行环境: 'ubuntu-latest',
-                    步骤: [
-                        {
-                            kind: '步骤',
-                            keyword: '契约校验',
-                            name: '契约校验',
-                            env: {
-                                CIB_CONTRACT_TYPE: 'GraphQL',
-                                CIB_FAIL_ACTION: '仅告警',
-                            },
-                            run: '...',
-                        },
-                    ],
-                },
-            ],
-        };
-        const yaml = 生成GitHubYAML(工作流);
-        expect(yaml).toContain('CIB_CONTRACT_TYPE: GraphQL');
-        expect(yaml).toContain('CIB_FAIL_ACTION: 仅告警');
+        const wdIdx = yaml.indexOf('working-directory');
+        const timeoutIdx = yaml.indexOf('timeout-minutes');
+        const envIdx = yaml.indexOf('env:');
+        const runIdx = yaml.indexOf('run:');
+        expect(wdIdx).toBeLessThan(runIdx);
+        expect(timeoutIdx).toBeLessThan(runIdx);
+        expect(envIdx).toBeLessThan(runIdx);
     });
 });

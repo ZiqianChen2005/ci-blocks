@@ -154,13 +154,20 @@ export const enUS: 语言包 = {
     },
     'cib/time-gate': {
       keyword: 'Time Gate',
-      描述: 'Reject commits outside the valid time window (with timezone support)',
-      字段: { 基准时间: 'Base Time', 时区: 'Timezone', 模式: 'Mode' },
-      选项: { 开仓冻结: 'Open Freeze', 超时封仓: 'Timeout Close' },
+      描述: 'Run embedded blocks when current time is before/after the base time',
+      字段: {
+        比较: 'Compare',
+        基准时间: 'Base Time',
+        时区: 'Timezone',
+      },
+      选项: {
+        之前: 'Before',
+        之后: 'After',
+      },
     },
     'cib/count-gate': {
       keyword: 'Count Gate',
-      描述: 'Block by commit / file counts when over or under the threshold',
+      描述: 'Run embedded blocks when count condition is met',
       字段: {
         计数来源: 'Count Source',
         阈值: 'Threshold',
