@@ -9,6 +9,15 @@ export interface IR门禁 {
     参数: Record<string, unknown>;
 }
 
+export interface IR条件 {
+    kind: '条件';
+    keyword: string;
+    blockId: string;
+    条件类型: '时间' | '次数';
+    参数: Record<string, unknown>;
+    条件成立时执行: IRNode[];
+}
+
 export interface IR步骤 {
     kind: '步骤';
     keyword: string;
@@ -59,7 +68,7 @@ export interface IR判定 {
     失败时: IRNode[];
 }
 
-export type IRNode = IR门禁 | IR步骤 | IR作业 | IR触发器 | IR过滤 | IR判定;
+export type IRNode = IR门禁 | IR步骤 | IR作业 | IR触发器 | IR过滤 | IR判定 | IR条件;
 
 export interface IR工作流 {
     名称: string;

@@ -12,6 +12,7 @@ export interface IR步骤 {
     kind: '步骤';
     keyword: string;
     name: string;
+    id?: string;
     uses?: string;
     run?: string;
     with?: Record<string, unknown>;
