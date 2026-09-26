@@ -7,4 +7,4 @@ export interface CIB文件 {
     工作区: unknown;
 }
 
-export const CIB格式版本 = '0.1.0';
+export const CIB格式版本 = __CIB_VERSION__;
