@@ -324,5 +324,12 @@ export const enUS: 语言包 = {
       },
       选项: { 是: 'Yes', 否: 'No' },
     },
+    'cib/text-note': {
+      keyword: 'Text Note',
+      描述: 'Write a note on the canvas; not included in code generation',
+      字段: {
+        内容: 'Content',
+      },
+    },
   },
 };

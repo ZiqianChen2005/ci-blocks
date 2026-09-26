@@ -7,6 +7,7 @@ import {
     导出JSON文件,
 } from '../cib/保存';
 import { 读取CIB文件, 应用CIB到工作区 } from '../cib/读取';
+import { 加载模板列表, 加载模板, type 模板元信息 } from '../templates/加载器';
 import { use语言 } from '../store/语言状态';
 import type { 语言 } from '@cib/i18n';
 
@@ -25,6 +26,7 @@ export function 菜单栏({ 工作区, 工作流名称, 设置工作流名称 }:
     const [显示快捷键, set显示快捷键] = useState(false);
     const [显示加载外部积木, set显示加载外部积木] = useState(false);
     const [外部积木URL, set外部积木URL] = useState('');
+    const [模板列表, set模板列表] = useState<模板元信息[]>([]);
     const 文件输入 = useRef<HTMLInputElement>(null);
     const 语言 = use语言((s) => s.语言);
     const 设置语言 = use语言((s) => s.设置语言);
@@ -41,6 +43,10 @@ export function 菜单栏({ 工作区, 工作流名称, 设置工作流名称 }:
         };
         document.addEventListener('mousedown', 关);
         return () => document.removeEventListener('mousedown', 关);
+    }, []);
+
+    useEffect(() => {
+        加载模板列表().then(set模板列表);
     }, []);
 
     const 显示提示 = (msg: string) => {
@@ -60,6 +66,23 @@ export function 菜单栏({ 工作区, 工作流名称, 设置工作流名称 }:
         设置工作流名称(语言包.通用.未命名工作流);
         set当前菜单(null);
         显示提示(工具.已新建);
+    };
+
+    const 从模板新建 = async (文件: string, 名称: string) => {
+        if (!工作区.current) return;
+        if (!confirm(`从模板「${名称}」新建会清空当前画布，确定？`)) return;
+        try {
+            const 数据 = await 加载模板(文件);
+            if (!工作区.current) return;
+            工作区.current.clear();
+            应用CIB到工作区(数据, 工作区.current);
+            if (数据.工作流名称) 设置工作流名称(数据.工作流名称);
+            if (数据.语言) 设置语言(数据.语言 as 语言);
+            显示提示(`已加载模板：${名称}`);
+        } catch (e) {
+            alert(`加载模板失败：${(e as Error).message}`);
+        }
+        set当前菜单(null);
     };
 
     const 保存 = async () => {
@@ -362,6 +385,17 @@ export function 菜单栏({ 工作区, 工作流名称, 设置工作流名称 }:
                     {当前菜单 === '文件' && (
                         <下拉菜单>
                             <菜单项 onClick={新建} 快捷键="Ctrl+N">{工具.新建}</菜单项>
+                            <子菜单 名="从模板新建…">
+                                {模板列表.length === 0 ? (
+                                    <菜单项 onClick={() => {}}>（无模板）</菜单项>
+                                ) : (
+                                    模板列表.map((t) => (
+                                        <菜单项 key={t.id} onClick={() => 从模板新建(t.文件, t.名称)}>
+                                            {t.名称}
+                                        </菜单项>
+                                    ))
+                                )}
+                            </子菜单>
                             <菜单项 onClick={打开} 快捷键="Ctrl+O">{工具.打开}</菜单项>
                             <分隔线 />
                             <菜单项 onClick={保存} 快捷键="Ctrl+S">{工具.保存}</菜单项>
@@ -479,6 +513,7 @@ export function 菜单栏({ 工作区, 工作流名称, 设置工作流名称 }:
                 />
             </div>
 
+            {/* 弹窗：加载外部积木 */}
             {显示加载外部积木 && (
                 <弹窗 标题={工具.工具菜单.加载外部积木标题} onClose={() => set显示加载外部积木(false)}>
                     <div style={{ marginBottom: 12, color: '#666', fontSize: 13 }}>
@@ -500,26 +535,13 @@ export function 菜单栏({ 工作区, 工作流名称, 设置工作流名称 }:
                     <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
                         <button
                             onClick={() => set显示加载外部积木(false)}
-                            style={{
-                                padding: '6px 16px',
-                                border: '1px solid #ccc',
-                                borderRadius: 4,
-                                cursor: 'pointer',
-                                background: 'white',
-                            }}
+                            style={{ padding: '6px 16px', border: '1px solid #ccc', borderRadius: 4, cursor: 'pointer', background: 'white' }}
                         >
-                            {工具.工具菜单.加载 === '加载' ? '取消' : 'Cancel'}
+                            取消
                         </button>
                         <button
                             onClick={执行加载外部积木}
-                            style={{
-                                padding: '6px 16px',
-                                border: 'none',
-                                borderRadius: 4,
-                                cursor: 'pointer',
-                                background: '#2c3e50',
-                                color: 'white',
-                            }}
+                            style={{ padding: '6px 16px', border: 'none', borderRadius: 4, cursor: 'pointer', background: '#2c3e50', color: 'white' }}
                         >
                             {工具.工具菜单.加载}
                         </button>
@@ -527,6 +549,7 @@ export function 菜单栏({ 工作区, 工作流名称, 设置工作流名称 }:
                 </弹窗>
             )}
 
+            {/* 弹窗：关于 */}
             {显示关于 && (
                 <弹窗 标题={工具.帮助菜单.关于标题} onClose={() => set显示关于(false)}>
                     <div style={{ lineHeight: 1.8 }}>
@@ -539,6 +562,7 @@ export function 菜单栏({ 工作区, 工作流名称, 设置工作流名称 }:
                 </弹窗>
             )}
 
+            {/* 弹窗：快捷键 */}
             {显示快捷键 && (
                 <弹窗 标题={工具.帮助菜单.快捷键标题} onClose={() => set显示快捷键(false)}>
                     <div style={{ lineHeight: 1.8, fontSize: 13 }}>
