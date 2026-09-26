@@ -36,3 +36,6 @@ export type { 契约对应输入 } from './contract/block';
 
 export { 部署GitHubPages } from './deploy-gh-pages/block';
 export type { 部署GitHubPages输入 } from './deploy-gh-pages/block';
+
+export { 文本框 } from './text-note/block';
+export type { 文本框输入 } from './text-note/block';

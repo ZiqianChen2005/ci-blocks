@@ -17,6 +17,7 @@ import {
     追根溯源,
     契约对应,
     部署GitHubPages,
+    文本框,
 } from '@cib/blocks-official';
 import { 设置积木箱 } from '../store/编辑器状态';
 import { use语言 } from '../store/语言状态';
@@ -26,6 +27,7 @@ const 内置积木 = [
     行为条件,
     分支条件,
     工作流判定条件,
+    文本框,
     时间铡刀,
     次数铡刀,
     越权控制,

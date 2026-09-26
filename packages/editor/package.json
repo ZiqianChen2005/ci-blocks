@@ -9,9 +9,10 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@blockly/field-multilineinput": "^4.0.0",
     "@cib/block-sdk": "workspace:*",
-    "@cib/core": "workspace:*",
     "@cib/blocks-official": "workspace:*",
+    "@cib/core": "workspace:*",
     "@cib/i18n": "workspace:*",
     "blockly": "^11.1.1",
     "react": "^18.3.1",

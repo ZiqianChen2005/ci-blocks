@@ -1,4 +1,5 @@
 import * as Blockly from 'blockly';
+import { FieldMultilineInput } from '@blockly/field-multilineinput';
 import type { CIBBlock, 字段描述 } from '@cib/block-sdk';
 import { 取积木名, 取字段名, 取选项名, type 语言包 } from '@cib/i18n';
 
@@ -137,7 +138,6 @@ function 注册自动编译积木(block: CIBBlock<any>, 包: 语言包) {
         },
 
         updateShape_(this: Blockly.Block, 工具链: string) {
-            // 先读值
             let 包管理器值 = 'pnpm';
             try { 包管理器值 = this.getFieldValue('包管理器') ?? 'pnpm'; } catch {}
             let 额外值 = '';
@@ -151,7 +151,6 @@ function 注册自动编译积木(block: CIBBlock<any>, 包: 语言包) {
             let 恢复键值 = '';
             try { 恢复键值 = this.getFieldValue('恢复键') ?? ''; } catch {}
 
-            // 清旧字段
             const 动态字段 = [
                 '自定义块1', '自定义块2', '包管理器块',
                 '缓存自定义块1', '缓存自定义块2', '缓存自定义块3',
@@ -162,7 +161,6 @@ function 注册自动编译积木(block: CIBBlock<any>, 包: 语言包) {
                 }
             }
 
-            // Node：包管理器
             if (工具链 === 'Node') {
                 this.appendDummyInput('包管理器块')
                     .appendField(`${字段名('包管理器')}:`)
@@ -176,7 +174,6 @@ function 注册自动编译积木(block: CIBBlock<any>, 包: 语言包) {
                 this.moveInputBefore('包管理器块', '版本行');
             }
 
-            // 自定义：额外 setup + 安装命令
             if (工具链 === '自定义') {
                 this.appendDummyInput('自定义块1')
                     .appendField(`${字段名('额外setup')}:`)
@@ -188,7 +185,6 @@ function 注册自动编译积木(block: CIBBlock<any>, 包: 语言包) {
                 this.moveInputBefore('自定义块2', '版本行');
             }
 
-            // 缓存 = 自定义
             let 缓存值 = '开';
             try { 缓存值 = this.getFieldValue('缓存') ?? '开'; } catch {}
             if (缓存值 === '自定义') {
@@ -229,10 +225,8 @@ function 注册时间铡刀积木(block: CIBBlock<any>, 包: 语言包) {
 
     Blockly.Blocks[block.id] = {
         init(this: Blockly.Block) {
-            // 头部
             this.appendDummyInput('头部').appendField(`${图标} ${积木名}`);
 
-            // 比较
             this.appendDummyInput('比较行')
                 .appendField(`${字段名('比较')}:`)
                 .appendField(
@@ -243,7 +237,6 @@ function 注册时间铡刀积木(block: CIBBlock<any>, 包: 语言包) {
                     '比较',
                 );
 
-            // 基准时间
             this.appendDummyInput('基准时间行')
                 .appendField(`${字段名('基准时间')}:`)
                 .appendField(new Blockly.FieldDropdown(年对), '基准时间_年')
@@ -259,24 +252,21 @@ function 注册时间铡刀积木(block: CIBBlock<any>, 包: 语言包) {
                 .appendField(new Blockly.FieldDropdown(分秒对), '基准时间_秒')
                 .appendField('秒');
 
-            // 时区
             this.appendDummyInput('时区行')
                 .appendField(`${字段名('时区')}:`)
                 .appendField(new Blockly.FieldDropdown(时区选项), '时区');
 
-            // 执行槽
-            this.appendStatementInput('执行块')
-                .appendField('执行');
+            this.appendStatementInput('执行块').appendField('执行');
 
-            // 设置：不能上下接
-            this.setPreviousStatement(true);
-            this.setNextStatement(true);
+            this.setPreviousStatement(true, null);
+            this.setNextStatement(true, null);
             this.setColour(颜色);
             this.setTooltip(提示);
         },
     };
 }
 
+// ========== 特殊积木：次数铡刀（条件式） ==========
 function 注册次数铡刀积木(block: CIBBlock<any>, 包: 语言包) {
     const 积木名 = 取积木名(包, block.id, block.keyword);
     const 图标 = block.meta.icon ?? '🔢';
@@ -292,10 +282,8 @@ function 注册次数铡刀积木(block: CIBBlock<any>, 包: 语言包) {
 
     Blockly.Blocks[block.id] = {
         init(this: Blockly.Block) {
-            // 头部
             this.appendDummyInput('头部').appendField(`${图标} ${积木名}`);
 
-            // 计数来源
             this.appendDummyInput('来源行')
                 .appendField(`${字段名('计数来源')}:`)
                 .appendField(
@@ -305,7 +293,6 @@ function 注册次数铡刀积木(block: CIBBlock<any>, 包: 语言包) {
                     '计数来源',
                 );
 
-            // 比较 + 阈值
             this.appendDummyInput('比较行')
                 .appendField(`${字段名('比较')}:`)
                 .appendField(
@@ -316,7 +303,6 @@ function 注册次数铡刀积木(block: CIBBlock<any>, 包: 语言包) {
                 )
                 .appendField(new Blockly.FieldTextInput('50'), '阈值');
 
-            // 计数范围
             this.appendDummyInput('范围行')
                 .appendField(`${字段名('计数范围')}:`)
                 .appendField(
@@ -326,7 +312,6 @@ function 注册次数铡刀积木(block: CIBBlock<any>, 包: 语言包) {
                     '计数范围',
                 );
 
-            // 模式
             this.appendDummyInput('模式行')
                 .appendField(`${字段名('模式')}:`)
                 .appendField(
@@ -336,11 +321,83 @@ function 注册次数铡刀积木(block: CIBBlock<any>, 包: 语言包) {
                     '模式',
                 );
 
-            // 执行槽
-            this.appendStatementInput('执行块')
-                .appendField('执行');
+            this.appendStatementInput('执行块').appendField('执行');
 
-            // 设置：可上下接
+            this.setPreviousStatement(true, null);
+            this.setNextStatement(true, null);
+            this.setColour(颜色);
+            this.setTooltip(提示);
+        },
+    };
+}
+
+// ========== 特殊积木：文本框 ==========
+function 注册文本框积木(block: CIBBlock<any>, 包: 语言包) {
+    const 积木名 = 取积木名(包, block.id, block.keyword);
+    const 图标 = block.meta.icon ?? '📝';
+    const 颜色 = 分类颜色[block.category] ?? 210;
+    const 提示 = 包.积木[block.id]?.描述 ?? block.meta.描述;
+
+    Blockly.Blocks[block.id] = {
+        init(this: Blockly.Block) {
+            this.appendDummyInput('内容')
+                .appendField(`${图标} ${积木名}`)
+                .appendField(new FieldMultilineInput('在此写注释…'), '内容');
+
+            this.setColour(颜色);
+            this.setTooltip(提示);
+            this.setDeletable(true);
+            this.setMovable(true);
+            this.setEditable(true);
+        },
+    };
+}
+
+// ========== 特殊积木：越权控制（负责人表多行） ==========
+function 注册越权控制积木(block: CIBBlock<any>, 包: 语言包) {
+    const 积木名 = 取积木名(包, block.id, block.keyword);
+    const 图标 = block.meta.icon ?? '🔒';
+    const 字段名 = (键: string) => 取字段名(包, block.id, 键, 键);
+    const 选项名 = (值: string) => 取选项名(包, block.id, 值, 值);
+    const 颜色 = 分类颜色[block.category] ?? 0;
+    const 提示 = 包.积木[block.id]?.描述 ?? block.meta.描述;
+
+    const 操作字段 = block.schema.find((f) => f.键 === '操作类型');
+    const 违规字段 = block.schema.find((f) => f.键 === '违规动作');
+
+    Blockly.Blocks[block.id] = {
+        init(this: Blockly.Block) {
+            this.appendDummyInput('头部').appendField(`${图标} ${积木名}`);
+
+            this.appendDummyInput('负责人行')
+                .appendField(`${字段名('负责人表')}:`)
+                .appendField(
+                    new FieldMultilineInput('alice: frontend/**\nbob: backend/**'),
+                    '负责人表',
+                );
+
+            this.appendDummyInput('操作行')
+                .appendField(`${字段名('操作类型')}:`)
+                .appendField(
+                    new Blockly.FieldDropdown(
+                        (操作字段?.选项 ?? []).map((o) => [选项名(o), o]),
+                    ),
+                    '操作类型',
+                );
+
+            this.appendDummyInput('违规行')
+                .appendField(`${字段名('违规动作')}:`)
+                .appendField(
+                    new Blockly.FieldDropdown(
+                        (违规字段?.选项 ?? []).map((o) => [选项名(o), o]),
+                    ),
+                    '违规动作',
+                );
+
+            this.appendDummyInput('豁免行')
+                .appendField(`${字段名('豁免者')}:`)
+                .appendField(new Blockly.FieldTextInput('admin,ci-bot'), '豁免者');
+
             this.setPreviousStatement(true, null);
             this.setNextStatement(true, null);
             this.setColour(颜色);
@@ -429,20 +486,29 @@ function 生成定义(block: CIBBlock<any>, 包: 语言包): any {
 export function 注册积木(block: CIBBlock<any>, 包: 语言包) {
     const key = `${block.id}@${包.语言}`;
 
+    // 特殊积木
     if (block.id === 'cib/build') {
         注册自动编译积木(block, 包);
         已注册.add(key);
         return;
     }
-
     if (block.id === 'cib/time-gate') {
         注册时间铡刀积木(block, 包);
         已注册.add(key);
         return;
     }
-
     if (block.id === 'cib/count-gate') {
         注册次数铡刀积木(block, 包);
+        已注册.add(key);
+        return;
+    }
+    if (block.id === 'cib/text-note') {
+        注册文本框积木(block, 包);
+        已注册.add(key);
+        return;
+    }
+    if (block.id === 'cib/ownership-guard') {
+        注册越权控制积木(block, 包);
         已注册.add(key);
         return;
     }
