@@ -370,14 +370,33 @@ export function 菜单栏({ 工作区, 工作流名称, 设置工作流名称 }:
                     alignItems: 'center',
                     gap: 12,
                     padding: '8px 16px',
-                    background: '#2c3e50',
+                    background: '#425466',
                     color: 'white',
-                    borderBottom: '1px solid #1a252f',
+                    borderBottom: '1px solid #3a454f',
                     position: 'relative',
                     zIndex: 100,
                 }}
             >
-                <strong>{工具.品牌}</strong>
+                <a
+                    href="https://github.com/ZiqianChen2005/ci-blocks"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 8,
+                        color: 'white',
+                        textDecoration: 'none',
+                        cursor: 'pointer',
+                    }}
+                >
+                    <img
+                        src="/favicon.svg"
+                        alt="CI Blocks"
+                        style={{ width: 40, height: 40, display: 'block' }}
+                    />
+                    <strong>{工具.品牌}</strong>
+                </a>
 
                 <div ref={菜单容器} style={{ display: 'flex', gap: 4 }}>
                     {/* 文件 */}
@@ -541,7 +560,7 @@ export function 菜单栏({ 工作区, 工作流名称, 设置工作流名称 }:
                         </button>
                         <button
                             onClick={执行加载外部积木}
-                            style={{ padding: '6px 16px', border: 'none', borderRadius: 4, cursor: 'pointer', background: '#2c3e50', color: 'white' }}
+                            style={{ padding: '6px 16px', border: 'none', borderRadius: 4, cursor: 'pointer', background: '#637e99', color: 'white' }}
                         >
                             {工具.工具菜单.加载}
                         </button>
@@ -552,11 +571,38 @@ export function 菜单栏({ 工作区, 工作流名称, 设置工作流名称 }:
             {/* 弹窗：关于 */}
             {显示关于 && (
                 <弹窗 标题={工具.帮助菜单.关于标题} onClose={() => set显示关于(false)}>
-                    <div style={{ lineHeight: 1.8 }}>
-                        <div><strong>CI Blocks</strong></div>
-                        <div>{工具.帮助菜单.关于描述}</div>
-                        <div style={{ marginTop: 12, color: '#666', fontSize: 13 }}>
-                            {工具.帮助菜单.版本}：0.1.0
+                    <div
+                        style={{
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center',
+                            textAlign: 'center',
+                            lineHeight: 1.8,
+                            gap: 12,
+                        }}
+                    >
+                        {/* CIB logo */}
+                        <img
+                            src="/favicon.svg"
+                            alt="CI Blocks"
+                            style={{ width: 64, height: 64 }}
+                        />
+                        <div><strong style={{ fontSize: 18 }}>CI Blocks</strong></div>
+                        <div style={{ color: '#666' }}>{工具.帮助菜单.关于描述}</div>
+
+                        {/* 分隔线 */}
+                        <div style={{ height: 1, background: '#eee', width: '60%', margin: '8px 0' }} />
+
+                        {/* 千里科技 logo */}
+                        <img
+                            src="/”千里科技“logo.svg"
+                            alt="千里科技"
+                            style={{ width: 120, height: 'auto' }}
+                        />
+                        <div style={{ color: '#999', fontSize: 13 }}>千里科技 出品</div>
+
+                        <div style={{ marginTop: 8, color: '#666', fontSize: 13 }}>
+                            {工具.帮助菜单.版本}：{__CIB_VERSION__}
                         </div>
                     </div>
                 </弹窗>
